@@ -282,7 +282,6 @@ public :
 	}
 
 	double CalculPrice(int M, Derivatives d) {
-		// does not use Derivative d as input as it is present in member data;
 		// M is number of MC simulations;
 
 		// payoff for asian option is: A_T = ( geo_average( price_path ) - K )^+
@@ -329,6 +328,23 @@ public :
 			sum += (average > K) * average / S0;
 		}
 		return exp(-r * T)* sum / M;
+	}
+
+	double CalculDelta_3(int M) {
+		double K = d.get_K();
+		double S0 = d.get_S0();
+		double sum = 0.0;
+		double t = 0.0;
+		double mu_bar = (r - sigma * sigma / 2) * pow(T - t, 2) / (2 * T);
+		double sigma_bar = sqrt(sigma*sigma / (T*T) * pow(T - t, 3) / 3);
+
+		for (int i = 0; i < M; i++) {
+			vector<double> path = generate_path(d);
+			double average = geo_average(path);
+			sum += (average > K) * (average - K ) * ( log( average / S0 ) - mu_bar );
+		}
+
+		return exp(-r * T) * sum / M / ( S0* pow(sigma_bar,2) );
 	}
 
 };
@@ -419,10 +435,13 @@ int main() {
 	cout << "The Closed form price of the asian call is equal to " << asian_call_price_cf << endl;
 
 	cout << endl;
+	double asian_call_delta_mc;
 	// double asian_call_delta_mc = mc_asian_call.CalculDelta(10000, 0.1);
-	double asian_call_delta_mc = mc_asian_call.CalculDelta_2(100000);
-	double asian_call_delta_cf = cf_asian_call.CalculDelta();
+	asian_call_delta_mc = mc_asian_call.CalculDelta_2(100000);
 	cout << "The Monte Carlo delta of the asian call is equal to " << asian_call_delta_mc << endl;
+	asian_call_delta_mc = mc_asian_call.CalculDelta_3(100000);
+	cout << "The Monte Carlo delta of the asian call is equal to " << asian_call_delta_mc << endl;
+	double asian_call_delta_cf = cf_asian_call.CalculDelta();	
 	cout << "The Closed form delta of the asian call is equal to " << asian_call_delta_cf << endl;
 
 
