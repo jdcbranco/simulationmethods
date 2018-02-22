@@ -268,7 +268,7 @@ public :
 		return exp(log_sum / vec.size());
 	}
 
-	vector<double> generate_path() {
+	vector<double> generate_path(Derivatives d) {
 		double h = T / N;
 		vector<double> path(N+1);
 		vector<double> Z = generate_normal(0.0, 1.0, N);
@@ -281,7 +281,7 @@ public :
 		return path;
 	}
 
-	double CalculPrice(int M) {
+	double CalculPrice(int M, Derivatives d) {
 		// does not use Derivative d as input as it is present in member data;
 		// M is number of MC simulations;
 
@@ -290,16 +290,16 @@ public :
 		vector<double> A_T_vec;
 		for (int i = 0; i < M; i++) {
 			// M times of MC simulations
-			vector<double> price_path = generate_path();
-			// cout << "PATH[1]: " << price_path[1] << endl;
-			double average = geo_average(price_path);
-			// cout << "AVERAGE:" << average << endl;
-			// cout << "indicator = " << ((average - d.get_K()) >= 0 )<< endl;
-			// cout << "A_T = " << ((average - d.get_K()) >= 0) * (average - d.get_K()) << endl;
+			vector<double> price_path = generate_path(d);
+			double average = geo_average(price_path);		
 			A_T_vec.push_back(((average - d.get_K()) >= 0) * (average - d.get_K()));
 		}
 
 		return mean_vector(A_T_vec);
+	}
+
+	double CalculPrice(int M) {
+		return CalculPrice(M, d);
 	}
 
 };
