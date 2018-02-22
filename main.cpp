@@ -63,9 +63,8 @@ public :
     }
 
     double mean_vector(vector<double> vect) {
-        int i;
         double sum = 0.0 ;
-        for (i = 0 ; i<vect.size();i=i+1) {
+        for (unsigned int i = 0 ; i<vect.size();i=i+1) {
             sum = sum+vect[i] ;
         }
         return sum/vect.size();
@@ -178,7 +177,7 @@ public :
     	double K=d.get_K();
     	double S0=d.get_S0();
     	double sum=0;
-    	for (int i=0;i<payoff1.size();i++){
+    	for (unsigned int i=0;i<payoff1.size();i++){
     		if(payoff1[i]>0){
     			sum+=(payoff1[i]+K)/S0;
     		}
