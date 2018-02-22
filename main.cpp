@@ -302,6 +302,23 @@ public :
 		return CalculPrice(M, d);
 	}
 
+	double CalculDelta(int M, double h) {
+		// same derivative with stock price S0-h
+		Derivatives d1;
+		d1 = d;
+		d1.set_S0(d.get_S0() - h);
+		// same derivative with stock price S0+h
+		Derivatives d2;
+		d2 = d;
+		d2.set_S0(d.get_S0() + h);
+
+		// option prices with initial stock price S0-h and S0+h
+		double price1 = CalculPrice(M, d1);
+		double price2 = CalculPrice(M, d2);
+		return ((price2 - price1) / (2 * h));
+
+	}
+
 };
 
 
@@ -381,6 +398,9 @@ int main() {
 	cout << "The Monte Carlo price of the asian call is equal to " << asian_call_price_mc << endl;
 	cout << "The Closed form price of the asian call is equal to " << asian_call_price_cf << endl;
 
+	cout << endl;
+	double asian_call_delta_mc = mc_asian_call.CalculDelta(10000, 0.1);
+	cout << "The Monte Carlo delta of the asian call is equal to " << asian_call_delta_mc << endl;
 
 
 	int dummy;
