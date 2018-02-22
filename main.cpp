@@ -260,12 +260,12 @@ public :
 	}
 
 	double geo_average(vector<double> &vec) {
-		// function to caluclate geometric average, given vector
-		double product = 1.0;
+		// function to caluclate geometric average, given vector, uses finds the average of the log values first, then gives exp( average(log values) )
+		double log_sum = 0.0; 
 		for (unsigned int i = 0; i < vec.size(); i++) {
-			product = product * vec[i];
+			log_sum = log_sum + log(vec[i]);
 		}
-		return pow(product, 1.0 / vec.size());
+		return exp(log_sum / vec.size());
 	}
 
 	vector<double> generate_path() {
@@ -300,6 +300,29 @@ public :
 		}
 
 		return mean_vector(A_T_vec);
+	}
+
+};
+
+
+class CF_Asian_Call : public model {
+public:
+	CF_Asian_Call(Derivatives d, double r, double T, double sigma) : model(d, r, T, sigma) { }
+	double normalCDF(double value) {
+		// PROPOSAL: move this higher up as a public function instead of a member function?
+		return 0.5 * erfc(-value / sqrt(2));
+	}
+
+	double CalculPrice() {
+		
+		double t = 0.0; // initial time
+		double G_t = d.get_S0();
+		double mu_bar = (r - sigma * sigma / 2) * pow(T - t, 2) / (2 * T);
+		double sigma_bar = sqrt(sigma*sigma / (T*T) * pow(T - t, 3) / 3);
+		double d2 = 1.0 / sigma_bar * (t / T * log(G_t) + (T - t) / T * log(d.get_S0()) + mu_bar - log(d.get_K()));
+		double d1 = d2 + sigma_bar;
+
+		return exp(-r * (T - t)) * (pow(G_t, t / T) * pow(d.get_S0(), (T - t) / T) * exp(mu_bar + pow(sigma_bar, 2) / 2) * normalCDF(d1) - d.get_K()*normalCDF(d2));
 	}
 
 };
@@ -348,12 +371,15 @@ int main() {
 	}
 
 	Derivatives asian_call(100.0, 100.0);
-	MC_Asian_Call mc_asian_call(asian_call, 0.05, 1.0, 0.4, 100);
-	
+	MC_Asian_Call mc_asian_call(asian_call, 0.05, 1.0, 0.4, 1000);
+	CF_Asian_Call cf_asian_call(asian_call, 0.05, 1.0, 0.4);
+
 	// price of the option
 	cout << endl;
-	double asian_call_price_mc = mc_asian_call.CalculPrice(1000);
-	cout << "The Monte_Carlo price of the asian call is equal to " << asian_call_price_mc << endl;
+	double asian_call_price_mc = mc_asian_call.CalculPrice(10000);
+	double asian_call_price_cf = cf_asian_call.CalculPrice();
+	cout << "The Monte Carlo price of the asian call is equal to " << asian_call_price_mc << endl;
+	cout << "The Closed form price of the asian call is equal to " << asian_call_price_cf << endl;
 
 
 
