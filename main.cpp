@@ -319,29 +319,49 @@ public :
 
 	}
 
+	double CalculDelta_2(int M) {
+		double K = d.get_K();
+		double S0 = d.get_S0();
+		double sum = 0.0;
+		for (int i = 0;i<M;i++) {
+			vector<double> path = generate_path(d); 
+			double average = geo_average(path);
+			sum += (average > K) * average / S0;
+		}
+		return exp(-r * T)* sum / M;
+	}
+
 };
 
 
 class CF_Asian_Call : public model {
+	double t = 0.0;
+	double G_t, mu_bar, sigma_bar, d1,d2;
+
 public:
-	CF_Asian_Call(Derivatives d, double r, double T, double sigma) : model(d, r, T, sigma) { }
+	CF_Asian_Call(Derivatives d, double r, double T, double sigma) : model(d, r, T, sigma) {
+		G_t = d.get_S0();
+		mu_bar = (r - sigma * sigma / 2) * pow(T - t, 2) / (2 * T);
+		sigma_bar = sqrt(sigma*sigma / (T*T) * pow(T - t, 3) / 3);
+		d2 = 1.0 / sigma_bar * (t / T * log(G_t) + (T - t) / T * log(d.get_S0()) + mu_bar - log(d.get_K()));
+		d1 = d2 + sigma_bar;
+	}
 	double normalCDF(double value) {
 		// PROPOSAL: move this higher up as a public function instead of a member function?
 		return 0.5 * erfc(-value / sqrt(2));
 	}
 
-	double CalculPrice() {
-		
-		double t = 0.0; // initial time
-		double G_t = d.get_S0();
-		double mu_bar = (r - sigma * sigma / 2) * pow(T - t, 2) / (2 * T);
-		double sigma_bar = sqrt(sigma*sigma / (T*T) * pow(T - t, 3) / 3);
-		double d2 = 1.0 / sigma_bar * (t / T * log(G_t) + (T - t) / T * log(d.get_S0()) + mu_bar - log(d.get_K()));
-		double d1 = d2 + sigma_bar;
-
-		return exp(-r * (T - t)) * (pow(G_t, t / T) * pow(d.get_S0(), (T - t) / T) * exp(mu_bar + pow(sigma_bar, 2) / 2) * normalCDF(d1) - d.get_K()*normalCDF(d2));
+	double normalPDF(double value) {
+		return (1 / sqrt(2 * M_PI)) * exp(-0.5 * pow(value, 2));
 	}
 
+	double CalculPrice() {
+		return exp(-r * (T - t)) * (pow(G_t, t / T) * pow(d.get_S0(), (T - t) / T) * exp(mu_bar + pow(sigma_bar, 2) / 2) * normalCDF( d1 ) - d.get_K()*normalCDF(d2));
+	}
+
+	double CalculDelta() {
+		return exp(mu_bar + pow(sigma_bar, 2) / 2)* normalCDF(d1) + exp(mu_bar + pow(sigma_bar, 2) / 2) / sigma_bar * normalPDF(d1) - d.get_K() / (sigma_bar * d.get_S0()) * normalPDF(d2); 
+	}
 };
 
 int main() {
@@ -388,19 +408,22 @@ int main() {
 	}
 
 	Derivatives asian_call(100.0, 100.0);
-	MC_Asian_Call mc_asian_call(asian_call, 0.05, 1.0, 0.4, 1000);
+	MC_Asian_Call mc_asian_call(asian_call, 0.05, 1.0, 0.4, 100);
 	CF_Asian_Call cf_asian_call(asian_call, 0.05, 1.0, 0.4);
 
 	// price of the option
 	cout << endl;
-	double asian_call_price_mc = mc_asian_call.CalculPrice(10000);
+	double asian_call_price_mc = mc_asian_call.CalculPrice(100000);
 	double asian_call_price_cf = cf_asian_call.CalculPrice();
 	cout << "The Monte Carlo price of the asian call is equal to " << asian_call_price_mc << endl;
 	cout << "The Closed form price of the asian call is equal to " << asian_call_price_cf << endl;
 
 	cout << endl;
-	double asian_call_delta_mc = mc_asian_call.CalculDelta(10000, 0.1);
+	// double asian_call_delta_mc = mc_asian_call.CalculDelta(10000, 0.1);
+	double asian_call_delta_mc = mc_asian_call.CalculDelta_2(100000);
+	double asian_call_delta_cf = cf_asian_call.CalculDelta();
 	cout << "The Monte Carlo delta of the asian call is equal to " << asian_call_delta_mc << endl;
+	cout << "The Closed form delta of the asian call is equal to " << asian_call_delta_cf << endl;
 
 
 	int dummy;
