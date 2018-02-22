@@ -251,7 +251,58 @@ public:
     }
 };
 
+class MC_Asian_Call : public model {
+	int N; // number of path incrememnts, to be input as a model parameter
+public :
+	MC_Asian_Call(Derivatives d, double r, double T, double sigma, int N) : model(d, r, T, sigma) {
+		// constructor to include N in additional to existing parameters
+		this -> N = N;
+	}
 
+	double geo_average(vector<double> &vec) {
+		// function to caluclate geometric average, given vector
+		double product = 1.0;
+		for (unsigned int i = 0; i < vec.size(); i++) {
+			product = product * vec[i];
+		}
+		return pow(product, 1.0 / vec.size());
+	}
+
+	vector<double> generate_path() {
+		double h = T / N;
+		vector<double> path(N+1);
+		vector<double> Z = generate_normal(0.0, 1.0, N);
+
+		path[0] = d.get_S0();
+
+		for (int i = 0; i < N; i++) {
+			path[i+1] = path[i] + r * path[i]*h + sigma * path[i]*sqrt(h)*Z[i];
+		}
+		return path;
+	}
+
+	double CalculPrice(int M) {
+		// does not use Derivative d as input as it is present in member data;
+		// M is number of MC simulations;
+
+		// payoff for asian option is: A_T = ( geo_average( price_path ) - K )^+
+
+		vector<double> A_T_vec;
+		for (int i = 0; i < M; i++) {
+			// M times of MC simulations
+			vector<double> price_path = generate_path();
+			// cout << "PATH[1]: " << price_path[1] << endl;
+			double average = geo_average(price_path);
+			// cout << "AVERAGE:" << average << endl;
+			// cout << "indicator = " << ((average - d.get_K()) >= 0 )<< endl;
+			// cout << "A_T = " << ((average - d.get_K()) >= 0) * (average - d.get_K()) << endl;
+			A_T_vec.push_back(((average - d.get_K()) >= 0) * (average - d.get_K()));
+		}
+
+		return mean_vector(A_T_vec);
+	}
+
+};
 
 int main() {
     Derivatives call(100,100);
@@ -283,5 +334,31 @@ int main() {
     // vega
     double vega_bs = bs.CalculVega();
     cout << "The vega is equal to " << vega_bs << endl;
+
+
+	// Asian options
+	cout << endl;
+	for (int i = 0; i < 20;i++) {
+		cout << "-";
+	}
+	cout << endl;
+	cout << "Asian Options" << endl;
+	for (int i = 0; i < 20;i++) {
+		cout << "-";
+	}
+
+	Derivatives asian_call(100.0, 100.0);
+	MC_Asian_Call mc_asian_call(asian_call, 0.05, 1.0, 0.4, 100);
+	
+	// price of the option
+	cout << endl;
+	double asian_call_price_mc = mc_asian_call.CalculPrice(1000);
+	cout << "The Monte_Carlo price of the asian call is equal to " << asian_call_price_mc << endl;
+
+
+
+	int dummy;
+	cin >> dummy;
     return 0;
 }
+ 
