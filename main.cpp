@@ -6,28 +6,42 @@
 #include <chrono>
 using namespace std;
 
-
 class Derivatives {
     double K;
     double S0;
-
+    double T;
+    double sigma;
+    
 public:
-    Derivatives(double strike = 100.0, double initial_price = 100.0) {
+    Derivatives(double strike = 100.0, double initial_price = 100.0,double T =1.0 , double sigma = 0.4) {
         K = strike;
         S0 = initial_price;
+        this -> T = T;
+        this -> sigma = sigma ;
     }
-
+    
     double get_K() {
         return K;
     }
     double get_S0() {
         return S0;
     }
-
+    
+    double get_T() {
+        return T;
+    }
+    
+    double get_sigma() {
+        return sigma;
+    }
+    
     void set_S0(double new_S0) {
         S0 = new_S0;
     }
-
+    
+    void set_sigma(double new_sigma) {
+        sigma = new_sigma;
+    }
 };
 
 
@@ -37,15 +51,11 @@ class model{
 protected:
     Derivatives d;
     double r;
-    double T;
-    double sigma;
 
 public :
-    model (Derivatives d,double r,double T,double sigma) {
+    model (Derivatives d,double r) {
         this ->d = d;
         this->r = r;
-        this-> T = T;
-        this -> sigma =sigma ;
     }
 
     // generate n random numbers
@@ -105,20 +115,23 @@ class MonteCarlo : public model{
 
 public :
 
-    MonteCarlo (Derivatives d,double r,double T,double sigma, int N) : model(d,r,T,sigma) {
+    MonteCarlo (Derivatives d,double r, int N) : model(d,r) {
         this -> N = N;
     }
 
     // generate the price path
 
-   /* void euler_path() {
+   /* 
+       void euler_path() {
         int i;
+        price_path = {d.get_S0()} ;
         vector<double> normal_random = generate_normal(0.0, 1.0, N) ;
         for (i=1 ; i <N ; i = i+1) {
-            double S_i = price_path[i-1] + r*price_path[i-1]*T/N + sigma*price_path[i-1]*pow(T/N , 0.5)*normal_random[i];
+            double S_i = price_path[i-1] + r*price_path[i-1]*d.get_T()/N + d.get_sigma()*price_path[i-1]*pow(d.get_T()/N , 0.5)*normal_random[i];
             price_path.push_back(S_i);
         }
-    }*/
+    }
+    */
 
 
     vector<double> payoff_call(Derivatives d, int n_simulations) {
@@ -126,12 +139,12 @@ public :
         int i ;
         vector<double> normal_random = generate_normal(0.0, 1.0, n_simulations) ;
         for (i = 0 ; i < n_simulations ; i = i+1) {
-            double S_T = d.get_S0()*exp( (r- pow(sigma,2.0)/2)*T + sigma*pow(T, 0.5)*normal_random[i]);
+            double S_T = d.get_S0()*exp( (r- pow(d.get_sigma(),2.0)/2)*d.get_T() + d.get_sigma()*pow(d.get_T(), 0.5)*normal_random[i]);
             if (S_T-d.get_K() < 0 ) {
                 payoff.push_back(0.0)  ;
             }
             else {
-                payoff.push_back(exp(-r*T)*(S_T-d.get_K()));
+                payoff.push_back(exp(-r*d.get_T())*(S_T-d.get_K()));
             }
         }
         return payoff;
@@ -161,15 +174,15 @@ public :
         Derivatives d2;
         d2 = d ;
         d2.set_S0(d.get_S0() +h) ;
-
+        
         // payoffs of derivatives with initial price S0-h and S0+h
         vector<double> payoff1 = payoff_call(d1, n_simulations) ;
         vector<double> payoff2 = payoff_call(d2, n_simulations) ;
-
+        
         double mean_payoff1 = mean_vector(payoff1); // mean of payoffs of the derivative with initial price S0-h
         double mean_payoff2 = mean_vector(payoff2); // mean of payoffs of the derivative with initial price S0+h
         return ((mean_payoff2-mean_payoff1)/(2*h));
-
+        
     }
 
     double CalculDelta_2(Derivatives d, int n_simulations){
@@ -182,7 +195,7 @@ public :
     			sum+=(payoff1[i]+K)/S0;
     		}
     	}
-    	return (sum*exp(-r*T))/n_simulations;
+    	return (sum*exp(-r*d.get_T()))/n_simulations;
 
 
 
@@ -197,23 +210,40 @@ public :
         Derivatives d2;
         d2 = d ;
         d2.set_S0(d.get_S0()+h) ;
-
+        
         // payoffs of derivatives with initial price S0-h, S0 and S0+h
         vector<double> payoff1 = payoff_call( d1, n_simulations);
         vector<double> payoff2 = payoff_call( d, n_simulations) ;
         vector<double> payoff3 = payoff_call( d2 , n_simulations) ;
-
+        
         // mean of payoffs
         double mean_payoff1 = mean_vector(payoff1); // initial price S0-h
         double mean_payoff2 = mean_vector(payoff2); // initial price S0
         double mean_payoff3 = mean_vector(payoff3); // initial price S0+h
 
-        return ((mean_payoff1+mean_payoff3-2*mean_payoff2)/(h*h));
-
+        return ((-mean_payoff1+mean_payoff3-2*mean_payoff2)/(h*h));
+        
     }
-
-
-
+    
+    
+    double CalculVega(Derivatives d,int n_simulations,double h) {
+        // same derivative with volatility sigma-h
+        Derivatives d1 ;
+        d1 = d;
+        d1.set_sigma(d.get_sigma() -h) ;
+        // same derivative with volatility sigma+h
+        Derivatives d2;
+        d2 = d ;
+        d2.set_sigma(d.get_sigma() +h) ;
+        
+        // payoffs of derivatives with initial volatility sigma-h and sigma+h
+        vector<double> payoff1 = payoff_call(d1, n_simulations) ;
+        vector<double> payoff2 = payoff_call(d2, n_simulations) ;
+        
+        double mean_payoff1 = mean_vector(payoff1); // mean of payoffs of the derivative with initial volatility sigma-h
+        double mean_payoff2 = mean_vector(payoff2); // mean of payoffs of the derivative with initial volatility sigma+h
+        return ((mean_payoff2-mean_payoff1)/(2*h));
+    }
 
 
 };
@@ -222,41 +252,40 @@ public :
 class Black_Scholes :public model{
 
 public:
-    Black_Scholes(Derivatives d,double r,double T,double sigma) : model(d,r,T,sigma) { }
-
+    Black_Scholes(Derivatives d,double r) : model(d,r) { }
+    
     double normalCDF(double value) {
         return 0.5 * erfc(-value / sqrt(2));
     }
-
+    
     double CalculPrice() {
-        double d1 = (log(d.get_S0() / d.get_K()) + (r + sigma*sigma / 2)*T) / (sigma*sqrt(T));
-        double d2 = d1 - sigma * sqrt(T);
-        return (d.get_S0()*normalCDF(d1) - normalCDF(d2)*d.get_K()*exp(-r*T) );
+        double d1 = (log(d.get_S0() / d.get_K()) + (r + d.get_sigma()*d.get_sigma() / 2)*d.get_T()) / (d.get_sigma()*sqrt(d.get_T()));
+        double d2 = d1 - d.get_sigma() * sqrt(d.get_T());
+        return (d.get_S0()*normalCDF(d1) - normalCDF(d2)*d.get_K()*exp(-r*d.get_T()) );
     }
-
+    
     double CalculDelta() {
-        double d1 = (log(d.get_S0() / d.get_K()) + (r + sigma*sigma / 2)*T) / (sigma*sqrt(T));
+        double d1 = (log(d.get_S0() / d.get_K()) + (r + d.get_sigma()*d.get_sigma() / 2)*d.get_T()) / (d.get_sigma()*sqrt(d.get_T()));
         return (normalCDF(d1));
     }
-
+                
     double CalculGamma() {
-        double d1 = (log(d.get_S0() / d.get_K()) + (r + sigma*sigma / 2)*T) / (sigma*sqrt(T));
-        return (exp(-d1*d1/2)/sqrt(2*M_PI) /(d.get_S0()*sigma*sqrt(T)) ) ;
+        double d1 = (log(d.get_S0() / d.get_K()) + (r + d.get_sigma()*d.get_sigma() / 2)*d.get_T()) / (d.get_sigma()*sqrt(d.get_T()));
+        return (exp(-d1*d1/2)/sqrt(2*M_PI) /(d.get_S0()*d.get_sigma()*sqrt(d.get_T())) ) ;
     }
-
+    
     double CalculVega() {
-        double d1 = (log(d.get_S0() / d.get_K()) + (r + sigma*sigma / 2)*T) / (sigma*sqrt(T));
-        cout << d1 << endl ;
-        return(exp(-d1*d1/2)/sqrt(2*M_PI) * d.get_S0() *sqrt(T)) ;
+        double d1 = (log(d.get_S0() / d.get_K()) + (r + d.get_sigma()*d.get_sigma() / 2)*d.get_T()) / (d.get_sigma()*sqrt(d.get_T()));
+        return(exp(-d1*d1/2)/sqrt(2*M_PI) * d.get_S0() *sqrt(d.get_T())) ;
     }
 };
 
 
 
 int main() {
-    Derivatives call(100,100);
-    MonteCarlo mc(call ,0.05,1.0,0.4, 100) ;
-    Black_Scholes bs(call ,0.05,1.0,0.4) ;
+    Derivatives call(100,100,1.0,0.4);
+    MonteCarlo mc(call ,0.05,100) ;
+    Black_Scholes bs(call ,0.05) ;
     // price of the option
     double price_call_mc = mc.CalculPrice(call, 1000000);
     cout << "The Monte_Carlo price of the call is equal to "<< price_call_mc << endl;
@@ -275,13 +304,17 @@ int main() {
     cout << "The BS delta is equal to "<< delta_bs << endl;
     double delta_new=mc.CalculDelta_2(call,1000000);
     cout << "The Monte_Carlo delta_1 is equal to "<< delta_new << endl;
+    
     // gamma
     double gamma_mc = mc.CalculGamma(call, 1000000, 0.001);
     cout << "The MonteCarlo gamma is equal to "<< gamma_mc << endl;
     double gamma_bs = bs.CalculGamma();
     cout << "The BS gamma is equal to "<< gamma_bs << endl;
+    
     // vega
+    double vega_mc = mc.CalculVega(call, 1000000, 0.01);
+    cout << "The Monte Carlo vega is equal to " << vega_mc << endl;
     double vega_bs = bs.CalculVega();
-    cout << "The vega is equal to " << vega_bs << endl;
+    cout << "The BS vega is equal to " << vega_bs << endl;
     return 0;
 }
