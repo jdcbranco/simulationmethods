@@ -301,10 +301,19 @@ public:
 
 class MC_Asian_Call : public model {
 	int N; // number of path incrememnts, to be input as a model parameter
+
+	// TEMP FIX:
+	double sigma = d.get_sigma();
+	double T = d.get_T();
 public :
-	MC_Asian_Call(Derivatives d, double r, double T, double sigma, int N) : model(d, r, T, sigma) {
-		// constructor to include N in additional to existing parameters
+	MC_Asian_Call(Derivatives d, double r, int N) : model(d, r) {
+		// constructor to include N in additional to existing 
 		this -> N = N;
+
+		// TEMP FIX for the merge
+		sigma = d.get_sigma();
+		T = d.get_T();
+		
 	}
 
 	double geo_average(vector<double> &vec) {
@@ -402,8 +411,17 @@ class CF_Asian_Call : public model {
 	double t = 0.0;
 	double G_t, mu_bar, sigma_bar, d1,d2;
 
+	// TEMP FIX:
+	double sigma, T;
+
 public:
-	CF_Asian_Call(Derivatives d, double r, double T, double sigma) : model(d, r, T, sigma) {
+	CF_Asian_Call(Derivatives d, double r) : model(d, r) {
+		
+		// TEMP FIX:
+		sigma = d.get_sigma();
+		T = d.get_T();
+		
+		
 		G_t = d.get_S0();
 		mu_bar = (r - sigma * sigma / 2) * pow(T - t, 2) / (2 * T);
 		sigma_bar = sqrt(sigma*sigma / (T*T) * pow(T - t, 3) / 3);
@@ -501,9 +519,9 @@ int main() {
 		cout << "-";
 	}
 
-	Derivatives asian_call(100.0, 100.0);
-	MC_Asian_Call mc_asian_call(asian_call, 0.05, 1.0, 0.4, 100);
-	CF_Asian_Call cf_asian_call(asian_call, 0.05, 1.0, 0.4);
+	Derivatives asian_call(100.0, 100.0, 1.0, 0.4);
+	MC_Asian_Call mc_asian_call(asian_call, 0.05, 100);
+	CF_Asian_Call cf_asian_call(asian_call, 0.05);
 
 	// price of the option
 	cout << endl;
