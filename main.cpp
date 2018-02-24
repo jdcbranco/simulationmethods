@@ -361,5 +361,41 @@ int main() {
     cout << "The Monte Carlo vega is equal to " << vega_mc << endl;
     double vega_bs = bs.CalculVega();
     cout << "The BS vega is equal to " << vega_bs << endl;
+
+	// Asian options
+	cout << endl;
+	for (int i = 0; i < 20;i++) {
+		cout << "-";
+	}
+	cout << endl;
+	cout << "Asian Options" << endl;
+	for (int i = 0; i < 20;i++) {
+		cout << "-";
+	}
+
+	Derivatives asian_call(100.0, 100.0);
+	MC_Asian_Call mc_asian_call(asian_call, 0.05, 1.0, 0.4, 100);
+	CF_Asian_Call cf_asian_call(asian_call, 0.05, 1.0, 0.4);
+
+	// price of the option
+	cout << endl;
+	double asian_call_price_mc = mc_asian_call.CalculPrice(100000);
+	double asian_call_price_cf = cf_asian_call.CalculPrice();
+	cout << "The Monte Carlo price of the asian call is equal to " << asian_call_price_mc << endl;
+	cout << "The Closed form price of the asian call is equal to " << asian_call_price_cf << endl;
+
+	cout << endl;
+	double asian_call_delta_mc;
+	// double asian_call_delta_mc = mc_asian_call.CalculDelta(10000, 0.1);
+	asian_call_delta_mc = mc_asian_call.CalculDelta_2(100000);
+	cout << "The Monte Carlo delta of the asian call is equal to " << asian_call_delta_mc << endl;
+	asian_call_delta_mc = mc_asian_call.CalculDelta_3(100000);
+	cout << "The Monte Carlo delta of the asian call is equal to " << asian_call_delta_mc << endl;
+	double asian_call_delta_cf = cf_asian_call.CalculDelta();	
+	cout << "The Closed form delta of the asian call is equal to " << asian_call_delta_cf << endl;
+
+
+	int dummy;
+	cin >> dummy;
     return 0;
 }
