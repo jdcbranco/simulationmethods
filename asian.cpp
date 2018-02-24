@@ -13,6 +13,8 @@
 #include <time.h>
 #include <stdlib.h>
 #include <math.h>
+#include <chrono>
+#include <random>
 using namespace std;
 
 
@@ -58,6 +60,20 @@ vector<double> normal_generator(unsigned int n){
 
 		return v;
 	}
+
+vector<double> generate_normal(int n = 1, double mean = 0.0, double var = 1.0) {
+	int j;
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::default_random_engine generator(seed);
+	normal_distribution<double> distribution(mean, var);
+	vector<double> rand_numbers;
+	for (j = 0; j < n; j = j + 1) {
+		double random_number = distribution(generator);
+		rand_numbers.push_back(random_number);
+	}
+	return rand_numbers;
+}
+
 
 void print(double d) {
 	// basic print for double
@@ -195,10 +211,10 @@ int main() {
 	double K = 100;
 	string method = "euler";
 	string type = "call";
-	double s0 = 100;
+	double s0 = 1000;
 	double r = 0.05;
 	double v = 0.4;
-	int no_sims = 100;
+	int no_sims = 1000;
 
 	srand(time(NULL));
 	asian_option_geometric opt(type,T,N,K);
