@@ -90,12 +90,12 @@ class asian_option_geometric{
 
 		// this function calculate pay off
 		double pay_off(double g_ave){
-		if((is_call&&g_ave>K) ){
-			return (g_ave-k);
-		}else if (!is_call&&g_ave < K){
-			return -(g_ave-k);
-		}
-		return 0;
+			if ((is_call&&g_ave>K)) {
+				return (g_ave - K);
+			}
+			else if (!is_call&&g_ave < K) {
+				return -(g_ave - K);
+			}
 			return 0;
 		}
 
