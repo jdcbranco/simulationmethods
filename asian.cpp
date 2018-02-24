@@ -59,6 +59,27 @@ vector<double> normal_generator(unsigned int n){
 		return v;
 	}
 
+void print(double d) {
+	// basic print for double
+	cout << d << endl;
+}
+
+void print(vector<double> &vec) {
+	// basic print for vector
+	for (unsigned int i = 0; i < vec.size(); i++) {
+		cout << vec[i] << endl;
+	}
+}
+
+void res_print(vector<double> res) {
+	cout << "price    = " << res[0] << endl;
+	cout << "time     = " << res[1] << endl;
+	cout << "mean     = " << res[2] << endl;
+	cout << "variance = " << res[3] << endl;
+
+}
+
+
 
 class asian_option_geometric{
 	  int T; // terminal time
@@ -75,6 +96,7 @@ class asian_option_geometric{
 			return -(g_ave-k);
 		}
 		return 0;
+			return 0;
 		}
 
 
@@ -83,15 +105,16 @@ class asian_option_geometric{
 	    clock_t t;
 	    double price = 0;
 	    double dt = (double)T/N;
-	    double dt_sqr = pow(T/N,0.5);
+	    double dt_sqr = pow((double)T/N,0.5); // ADDED: Casting T to double
 		double mean_sqr = 0;
 
 	    // simulate results
+		double duration;
 	    t = clock();// start the timer
 
 	    // run the simulation and use antithetic variance reduction
-	    for(unsigned int i = 0;i < no_sims/2;i++){
-	      vector<double> z = normal_generator(N); //generate normal vector of size N
+	   for(unsigned int i = 0;i < no_sims/2;i++) {
+		vector<double> z = normal_generator(N); //generate normal vector of size N
 	      double sum_u = log(S0);
 	      double sum_d = log(S0);
 	      double s_u = S0;
@@ -104,18 +127,18 @@ class asian_option_geometric{
 	         sum_d += log(s_d);
 	      }
 			// update price
-			price += pay_off(exp(sum_u*(1/(N+1))));
-			price += pay_off(exp(sum_d*(1 / (N + 1))));	
-			mean_sqr += pow(pay_off(exp(sum_u*(1 / (N + 1)))), 2);
-			mean_sqr += pow(pay_off(exp(sum_d*(1 / (N + 1)))), 2);
+			price += pay_off(exp(sum_u/(N+1)));
+			price += pay_off(exp(sum_d/(N + 1)));	
+			mean_sqr += pow(pay_off(exp(sum_u / (N + 1))), 2);
+			mean_sqr += pow(pay_off(exp(sum_d/ (N + 1))), 2);
 
 	    }
 	    // record time
-	    t = (clock()-t)/(double)CLOCKS_PER_SEC;
+	    duration = (clock()-t)/(double)CLOCKS_PER_SEC;
 		// return results
 		// handle edge cases
 		res.push_back((price/no_sims)*exp(-r*T)); // price
-		res.push_back(t); //time
+		res.push_back(duration); //time
 		res.push_back(price/no_sims); //mean
 		res.push_back((mean_sqr/no_sims)-pow((price/no_sims),2)); //variance
 
@@ -145,7 +168,6 @@ public :
 
     //Use selected method to calcuate c_0
     if(icompare(method,"euler")){
-
        	MC_euler_pricing(S0,r,v,no_sims,res);
     }else if(icompare(method,"milstein")){
 
@@ -167,23 +189,23 @@ public :
 
 };
 
-
 int main() {
-	int T = 5;
-	unsigned int N = 30;
-	double K = 5;
+	int T = 1;
+	unsigned int N = 100;
+	double K = 100;
 	string method = "euler";
 	string type = "call";
-	double s0 = 10;
-	double r = 0.5;
-	double v = 2.3;
-	int no_sims = 2;
+	double s0 = 100;
+	double r = 0.05;
+	double v = 0.4;
+	int no_sims = 100;
 
 	srand(time(NULL));
 	asian_option_geometric opt(type,T,N,K);
 	vector<double> res = opt.calculate_price("euler",s0,r,v,no_sims);
 
-
-
+	res_print(res);
+	int dummy;
+	cin >> dummy;
 	return 0;
 }
