@@ -95,6 +95,13 @@ void res_print(vector<double> res) {
 
 }
 
+double normalCDF(double value) {
+	return 0.5 * erfc(-value / sqrt(2));
+}
+
+double normalPDF(double value) {
+	return (1 / sqrt(2 * M_PI)) * exp(-0.5 * pow(value, 2));
+}
 
 
 class asian_option_geometric{
@@ -115,6 +122,42 @@ class asian_option_geometric{
 			return 0;
 		}
 
+		void MC_euler_pricing_non_anti(double S0, double r, double v, unsigned int no_sims, vector<double>& res) {
+			// prameter initlisation
+			clock_t t;
+			double price = 0;
+			double dt = (double)T / N;
+			double dt_sqr = pow((double)T / N, 0.5); // ADDED: Casting T to double
+			double mean_sqr = 0;
+
+			// simulate results
+			double duration;
+			t = clock();// start the timer
+
+			// run the simulation, NO variance reduction
+			for (unsigned int i = 0; i < no_sims; i++) {
+				vector<double> z = normal_generator(N); //generate normal vector of size N
+				double log_sum = log(S0);
+				double s = S0;
+
+				for (unsigned int j = 0;j < N;j++) {
+					s += r * s*dt + v * s*dt_sqr*z[j];
+					log_sum += log(s);
+				}
+				price += pay_off(exp(log_sum / (N + 1)));
+				mean_sqr += pow(pay_off(exp(log_sum / (N + 1))),2);
+				
+			}
+			// record time
+			duration = (clock() - t) / (double)CLOCKS_PER_SEC;
+			// return results
+			// handle edge cases
+			res.push_back((price / no_sims)*exp(-r * T)); // price
+			res.push_back(duration); //time
+			res.push_back(price / no_sims); //mean
+			res.push_back((mean_sqr / no_sims) - pow((price / no_sims), 2)); //variance
+
+		}
 
 	void MC_euler_pricing(double S0, double r,double v,unsigned int no_sims,vector<double>& res){
 	    // prameter initlisation
@@ -161,7 +204,30 @@ class asian_option_geometric{
   }
 
 	void MC_milstein_pricing(int no_sims){}
-	void analytic_solution_pricing(){}
+	
+	void analytic_solution_pricing(double S0, double r, double v, vector<double>& res){
+		clock_t c;
+		double t = 0;
+		// simulate results
+		double duration;
+		c = clock();// start the timer
+
+		double G_t = S0;
+		double mu_bar = (r - v * v / 2) * pow(T - t, 2) / (2 * T);
+		double sigma_bar = sqrt(v*v / (T*T) * pow(T - t, 3) / 3);
+		double d2 = 1.0 / sigma_bar * (t / T * log(G_t) + (T - t) / T * log(S0) + mu_bar - log(K));
+		double d1 = d2 + sigma_bar;
+
+		double price = exp(-r * (T - t)) * (pow(G_t, t / T) * pow(S0, (T - t) / T) * exp(mu_bar + pow(sigma_bar, 2) / 2) * normalCDF(d1) - K*normalCDF(d2));
+
+		// record time
+		duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+
+		res.push_back(price);
+		res.push_back(duration);
+		res.push_back(price);
+		res.push_back(0.0);
+	}
 
 
 public :
@@ -184,11 +250,11 @@ public :
 
     //Use selected method to calcuate c_0
     if(icompare(method,"euler")){
-       	MC_euler_pricing(S0,r,v,no_sims,res);
+		MC_euler_pricing_non_anti(S0,r,v,no_sims,res);
     }else if(icompare(method,"milstein")){
 
     }else if(icompare(method,"analytic")){
-
+		analytic_solution_pricing(S0, r, v, res);
     }else{
       // edge case: prcing method known
     }
@@ -207,20 +273,41 @@ public :
 
 int main() {
 	int T = 1;
-	unsigned int N = 100;
+	unsigned int N = 1000;
 	double K = 100;
 	string method = "euler";
 	string type = "call";
-	double s0 = 1000;
+	double s0 = 100;
 	double r = 0.05;
 	double v = 0.4;
 	int no_sims = 1000;
 
 	srand(time(NULL));
 	asian_option_geometric opt(type,T,N,K);
-	vector<double> res = opt.calculate_price("euler",s0,r,v,no_sims);
+	vector<double> res = opt.calculate_price("analytic", s0, r, v);
 
+	cout << "Analytic: " << endl;
 	res_print(res);
+	cout << endl;
+	
+	cout << "Euler: " << endl;
+	cout << "n = " << no_sims << endl;
+	res = opt.calculate_price("euler", s0, r, v, no_sims);
+	res_print(res);
+	cout << endl;
+
+	no_sims = 10000;
+	cout << "n = " << no_sims << endl;
+	res = opt.calculate_price("euler", s0, r, v, no_sims);
+	res_print(res);
+	cout << endl;
+
+	no_sims = 100000;
+	cout << "n = " << no_sims << endl;
+	res = opt.calculate_price("euler", s0, r, v, no_sims);
+	res_print(res);
+	cout << endl;
+
 	int dummy;
 	cin >> dummy;
 	return 0;
