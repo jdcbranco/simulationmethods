@@ -172,7 +172,7 @@ class asian_option_geometric{
 	    t = clock();// start the timer
 
 	    // run the simulation and use antithetic variance reduction
-	   for(unsigned int i = 0;i < no_sims/2;i++) {
+	   for(unsigned int i = 0;i < no_sims;i++) {
 		vector<double> z = normal_generator(N); //generate normal vector of size N
 	      double sum_u = log(S0);
 	      double sum_d = log(S0);
@@ -196,10 +196,10 @@ class asian_option_geometric{
 	    duration = (clock()-t)/(double)CLOCKS_PER_SEC;
 		// return results
 		// handle edge cases
-		res.push_back((price/no_sims)*exp(-r*T)); // price
+		res.push_back((price/no_sims/2)*exp(-r*T)); // price
 		res.push_back(duration); //time
-		res.push_back(price/no_sims); //mean
-		res.push_back((mean_sqr/no_sims)-pow((price/no_sims),2)); //variance
+		res.push_back(price/no_sims/2); //mean
+		res.push_back((mean_sqr/no_sims/2)-pow((price/no_sims/2),2)); //variance
 
   }
 
@@ -244,14 +244,17 @@ public :
   }
 
   // this function calculate the option price at time 0 and analytic statistics
-	vector<double> calculate_price(const string& method,double S0, double r,double v,int no_sims = 100000){
-    // return containeer
-    vector<double> res;
+  vector<double> calculate_price(const string& method, double S0, double r, double v, int no_sims = 100000) {
+	  // return containeer
+	  vector<double> res;
 
-    //Use selected method to calcuate c_0
-    if(icompare(method,"euler")){
-		MC_euler_pricing_non_anti(S0,r,v,no_sims,res);
-    }else if(icompare(method,"milstein")){
+	  //Use selected method to calcuate c_0
+	  if (icompare(method, "euler")) {
+		  MC_euler_pricing(S0, r, v, no_sims, res);
+	  }
+	  else if (icompare(method, "euler_na")) {
+		  MC_euler_pricing_non_anti(S0, r, v, no_sims, res);
+	}else if(icompare(method,"milstein")){
 
     }else if(icompare(method,"analytic")){
 		analytic_solution_pricing(S0, r, v, res);
@@ -273,7 +276,7 @@ public :
 
 int main() {
 	int T = 1;
-	unsigned int N = 1000;
+	unsigned int N = 100;
 	double K = 100;
 	string method = "euler";
 	string type = "call";
@@ -290,21 +293,32 @@ int main() {
 	res_print(res);
 	cout << endl;
 	
-	cout << "Euler: " << endl;
 	cout << "n = " << no_sims << endl;
+	cout << "Euler: " << endl;
 	res = opt.calculate_price("euler", s0, r, v, no_sims);
+	res_print(res);
+	cout << "Euler NA: " << endl;
+	res = opt.calculate_price("euler_na", s0, r, v, no_sims);
 	res_print(res);
 	cout << endl;
 
 	no_sims = 10000;
 	cout << "n = " << no_sims << endl;
+	cout << "Euler: " << endl;
 	res = opt.calculate_price("euler", s0, r, v, no_sims);
+	res_print(res);
+	cout << "Euler NA: " << endl;
+	res = opt.calculate_price("euler_na", s0, r, v, no_sims);
 	res_print(res);
 	cout << endl;
 
 	no_sims = 100000;
 	cout << "n = " << no_sims << endl;
+	cout << "Euler: " << endl;
 	res = opt.calculate_price("euler", s0, r, v, no_sims);
+	res_print(res);
+	cout << "Euler NA: " << endl;
+	res = opt.calculate_price("euler_na", s0, r, v, no_sims);
 	res_print(res);
 	cout << endl;
 
