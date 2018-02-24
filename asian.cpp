@@ -297,6 +297,7 @@ int main() {
 	cout << "Euler: " << endl;
 	res = opt.calculate_price("euler", s0, r, v, no_sims);
 	res_print(res);
+	cout << endl;
 	cout << "Euler NA: " << endl;
 	res = opt.calculate_price("euler_na", s0, r, v, no_sims);
 	res_print(res);
@@ -307,6 +308,7 @@ int main() {
 	cout << "Euler: " << endl;
 	res = opt.calculate_price("euler", s0, r, v, no_sims);
 	res_print(res);
+	cout << endl;
 	cout << "Euler NA: " << endl;
 	res = opt.calculate_price("euler_na", s0, r, v, no_sims);
 	res_print(res);
@@ -317,6 +319,7 @@ int main() {
 	cout << "Euler: " << endl;
 	res = opt.calculate_price("euler", s0, r, v, no_sims);
 	res_print(res);
+	cout << endl;
 	cout << "Euler NA: " << endl;
 	res = opt.calculate_price("euler_na", s0, r, v, no_sims);
 	res_print(res);
