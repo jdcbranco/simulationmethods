@@ -124,8 +124,8 @@ void print(vector<double> &vec) {
 void res_print(vector<double> res) {
 	cout << "   estimate = " << res[0] << endl;
 	cout << "   time     = " << res[1] << endl;
-	cout << "   mean     = " << res[2] << endl;
-	cout << "   variance = " << res[3] << endl;
+	cout << "   err_mean = " << res[2] << endl;
+	cout << "   err_var  = " << res[3] << endl;
 
 }
 
@@ -200,18 +200,23 @@ class asian_option_geometric{
         res.push_back(C); // price
         res.push_back(duration); //time
         res.push_back(C); //mean
-        res.push_back((mean_sqr / no_sims) - pow(C, 2)); //variance
+        res.push_back((mean_sqr *exp(-r * T) *exp(-r * T) / no_sims) - pow(C, 2)); //variance
 
     }
     
     void MC_euler_pricing_non_anti(double S0, double r, double v, unsigned int no_sims, vector<double>& res) {
         // prameter initlisation
         clock_t c;
+        c = clock();
         double duration;
         double price = 0;
         double dt = (double)T / N;
         double dt_sqr = pow((double)T / N, 0.5); // ADDED: Casting T to double
         double mean_sqr = 0;
+        vector<double> true_val;
+        analytic_solution_pricing( S0,  r,  v, true_val);
+        double this_price, this_err, err_sum = 0, err_sum_sqr = 0;
+        double discount = exp(-r * T);
         
         // run the simulation, NO variance reduction
         for (unsigned int i = 0; i < no_sims; i++) {
@@ -223,19 +228,24 @@ class asian_option_geometric{
                 s += r * s*dt + v * s*dt_sqr*z[j];
                 log_sum += log(s);
             }
-            price += pay_off(exp(log_sum / N));
-            mean_sqr += pow(pay_off(exp(log_sum / N)),2);
+            this_price = pay_off(exp(log_sum / N)) * discount;
+            price += this_price;
+            mean_sqr += pow(this_price,2);
+            
+            this_err = this_price - true_val[0];
+            err_sum += this_err;
+            err_sum_sqr += pow(this_err,2);
             
         }
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
         // return results
         // handle edge cases
-        double C = (price / no_sims)*exp(-r * T);
+        double C = (price / no_sims);
         res.push_back(C); // price
         res.push_back(duration); //time
-        res.push_back(C); //mean
-        res.push_back((mean_sqr / no_sims) - pow(C, 2)); //variance
+        res.push_back(err_sum / no_sims ); //mean
+        res.push_back((err_sum_sqr / no_sims) - pow(err_sum / no_sims, 2)); //variance
         
     }
 
@@ -249,6 +259,10 @@ class asian_option_geometric{
         double dt = (double)T / N;
         double dt_sqr = pow((double)T / N, 0.5); // ADDED: Casting T to double
         double mean_sqr = 0;
+        vector<double> true_val;
+        analytic_solution_pricing( S0,  r,  v, true_val);
+        double this_price, this_err , err_sum = 0, err_sum_sqr = 0;
+        double discount = exp(-r * T);
         
         // run the simulation, NO variance reduction
         for (unsigned int i = 0; i < no_sims; i++) {
@@ -260,24 +274,27 @@ class asian_option_geometric{
                 s += r * s*dt + v * s*dt_sqr*z[j] + 0.5 * v * ( v * s ) * dt * ( z[j]*z[j] - 1 ) ;
                 log_sum += log(s);
             }
-            price += pay_off(exp(log_sum / N));
-            mean_sqr += pow(pay_off(exp(log_sum / N )),2);
+            this_price = pay_off(exp(log_sum / N)) * discount;
+            price += this_price;
+            mean_sqr += pow(this_price,2);
+            
+            this_err = this_price - true_val[0];
+            err_sum += this_err;
+            err_sum_sqr += pow(this_err,2);
             
         }
-        
-        
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
         // return results
         // handle edge cases
-        double C = (price / no_sims)*exp(-r * T);
+        double C = (price / no_sims);
         res.push_back(C); // price
         res.push_back(duration); //time
-        res.push_back(C); //mean
-        res.push_back((mean_sqr / no_sims) - pow(C, 2)); //variance
+        res.push_back(err_sum / no_sims ); //mean
+        res.push_back((err_sum_sqr / no_sims) - pow(err_sum / no_sims, 2)); //variance
         
     }
-	
+    
 	void analytic_solution_pricing(double S0, double r, double v, vector<double>& res){
 		clock_t c;
 		double t = 0;
@@ -308,14 +325,16 @@ class asian_option_geometric{
         double duration;
         c = clock();// start the timer
         
-        double price1_sum = 0, price2_sum = 0, price1, price2, price_dff_sum = 0, price_dff_sqr_sum = 0;
+        double price1_sum = 0, price2_sum = 0, price1, price2, greek_sum = 0, greek_sum_sqr = 0;
         double dt = (double)T / N;
         double dt_sqr = pow((double)T / N, 0.5); // ADDED: Casting T to double
         double mean_sqr = 0;
         
         double delta, expectation, var;
-        
-        vector<double> res1,res2;
+        vector<double> true_val;
+        analytic_solution_delta( S0,  r, v, true_val);
+        double this_price_1, this_price_2, this_greek, this_err, err_sum = 0, err_sum_sqr = 0;
+        double discount = exp(-r * T);
         
         // run the simulation
         if(icompare(method, "milstein") ) {
@@ -331,15 +350,20 @@ class asian_option_geometric{
                     log_sum1 += log(s1);
                     log_sum2 += log(s2);
                 }
-                price_dff_sum += pay_off(exp(log_sum1 / N)) - pay_off(exp(log_sum2 / N));
-                price_dff_sqr_sum += pow( pay_off(exp(log_sum1 / N)) - pay_off(exp(log_sum2 / N)) , 2);
+                this_price_1 = pay_off(exp(log_sum1 / N))* discount;
+                this_price_2 = pay_off(exp(log_sum2 / N))* discount;
+                this_greek = (this_price_1 - this_price_2 ) / (2*h) ;
+
+                greek_sum += this_greek;
+                greek_sum_sqr += pow(this_greek,2);
                 
+                this_err = this_greek - true_val[0];
+                err_sum += this_err;
+                err_sum_sqr += pow(this_err,2);
             }
-            delta = ( price_dff_sum / no_sims ) / (2*h);
-            
-            expectation = delta;
-            
-            var = price_dff_sqr_sum / ( no_sims * 4*h*h ) - pow( expectation, 2);
+            delta = ( greek_sum / no_sims );
+            expectation = err_sum / no_sims ;
+            var = err_sum_sqr / no_sims - pow( expectation, 2);
             
             // record time
             duration = (clock() - c) / (double)CLOCKS_PER_SEC;
@@ -358,15 +382,20 @@ class asian_option_geometric{
                     log_sum1 += log(s1);
                     log_sum2 += log(s2);
                 }
-                price_dff_sum += pay_off(exp(log_sum1 / N)) - pay_off(exp(log_sum2 / N));
-                price_dff_sqr_sum += pow( pay_off(exp(log_sum1 / N)) - pay_off(exp(log_sum2 / N)) , 2);
+                this_price_1 = pay_off(exp(log_sum1 / N))* discount;
+                this_price_2 = pay_off(exp(log_sum2 / N))* discount;
+                this_greek = (this_price_1 - this_price_2 ) / (2*h) ;
+                
+                greek_sum += this_greek;
+                greek_sum_sqr += pow(this_greek,2);
+                
+                this_err = this_greek - true_val[0];
+                err_sum += this_err;
+                err_sum_sqr += pow(this_err,2);
             }
-            
-            delta = ( price_dff_sum / no_sims ) / (2*h);
-            
-            expectation = delta;
-            
-            var = price_dff_sqr_sum / ( no_sims * 4*h*h ) - pow( expectation, 2);
+            delta = ( greek_sum / no_sims );
+            expectation = err_sum / no_sims ;
+            var = err_sum_sqr / no_sims - pow( expectation, 2);
             
             // record time
             duration = (clock() - c) / (double)CLOCKS_PER_SEC;
@@ -458,18 +487,22 @@ class asian_option_geometric{
         double duration;
         c = clock();// start the timer
         
-        double price1_sum = 0, price2_sum = 0, price1, price2, price_dff_sum = 0, price_dff_sqr_sum = 0;
+        double price1_sum = 0, price2_sum = 0, price1, price2, greek_sum = 0, greek_sum_sqr = 0, err_sum = 0, err_sum_sqr = 0;
         double dt = (double)T / N;
         double dt_sqr = pow((double)T / N, 0.5); // ADDED: Casting T to double
         double mean_sqr = 0;
         
         double vega, expectation, var;
         
-        vector<double> res1,res2;
+        double this_price_1,this_price_2;
+        double discount = exp(-r * T);
+        double this_err, this_greek;
+        vector<double> true_val;
+        analytic_solution_vega( S0,  r,  v, true_val);
+        
         
         // run the simulation
         if(icompare(method, "milstein") ) {
-            // use milstein if requested
             for (unsigned int i = 0; i < no_sims; i++) {
                 vector<double> z = normal_generator(N); //generate normal vector of size N, for both price1 AND price2
                 double log_sum1 = 0, log_sum2 = 0;
@@ -482,22 +515,25 @@ class asian_option_geometric{
                     log_sum1 += log(s1);
                     log_sum2 += log(s2);
                 }
-                price_dff_sum += pay_off(exp(log_sum1 / N)) - pay_off(exp(log_sum2 / N));
-                price_dff_sqr_sum += pow( pay_off(exp(log_sum1 / N)) - pay_off(exp(log_sum2 / N)) , 2);
+                this_price_1 = pay_off(exp(log_sum1 / N))* discount;
+                this_price_2 = pay_off(exp(log_sum2 / N))* discount;
+                this_greek = (this_price_1 - this_price_2 ) / (2*h) ;
                 
+                greek_sum += this_greek;
+                greek_sum_sqr += pow(this_greek,2);
+                
+                this_err = this_greek - true_val[0];
+                err_sum += this_err;
+                err_sum_sqr += pow(this_err,2);
             }
-            vega = ( price_dff_sum / no_sims ) / (2*h);
-            
-            expectation = vega;
-            
-            var = price_dff_sqr_sum / ( no_sims * 4*h*h ) - pow( expectation, 2);
+            vega = ( greek_sum / no_sims );
+            expectation = err_sum / no_sims;
+            var = err_sum_sqr / no_sims - pow( expectation, 2);
             
             // record time
             duration = (clock() - c) / (double)CLOCKS_PER_SEC;
             
         } else if(icompare(method, "euler")){
-            
-            // use milstein if requested
             for (unsigned int i = 0; i < no_sims; i++) {
                 vector<double> z = normal_generator(N); //generate normal vector of size N, for both price1 AND price2
                 double log_sum1 = 0, log_sum2 = 0;
@@ -510,16 +546,20 @@ class asian_option_geometric{
                     log_sum1 += log(s1);
                     log_sum2 += log(s2);
                 }
-                price_dff_sum += pay_off(exp(log_sum1 / N)) - pay_off(exp(log_sum2 / N));
-                price_dff_sqr_sum += pow( pay_off(exp(log_sum1 / N)) - pay_off(exp(log_sum2 / N)) , 2);
+                this_price_1 = pay_off(exp(log_sum1 / N))* discount;
+                this_price_2 = pay_off(exp(log_sum2 / N))* discount;
+                this_greek = (this_price_1 - this_price_2 ) / (2*h) ;
                 
+                greek_sum += this_greek;
+                greek_sum_sqr += pow(this_greek,2);
+                
+                this_err = this_greek - true_val[0];
+                err_sum += this_err;
+                err_sum_sqr += pow(this_err,2);
             }
-            
-            vega = ( price_dff_sum / no_sims ) / (2*h);
-            
-            expectation = vega;
-            
-            var = price_dff_sqr_sum / ( no_sims * 4*h*h ) - pow( expectation, 2);
+            vega = ( greek_sum / no_sims );
+            expectation = err_sum / no_sims;
+            var = err_sum_sqr / no_sims - pow( expectation, 2);
             
             // record time
             duration = (clock() - c) / (double)CLOCKS_PER_SEC;
@@ -573,14 +613,18 @@ class asian_option_geometric{
         double duration;
         c = clock();// start the timer
         
-        double price_dff_sum = 0, price_dff_sqr_sum = 0, numerator;
+        double greek_sum = 0, greek_sum_sqr = 0, numerator, err_sum = 0, err_sum_sqr;
         double dt = (double)T / N;
         double dt_sqr = pow((double)T / N, 0.5); // ADDED: Casting T to double
         double mean_sqr = 0;
         
         double res_val, expectation, var;
         
-        vector<double> res1,res2;
+        double this_price_1, this_price_2, this_price_3;
+        double discount = exp(-r * T);
+        double this_err, this_greek;
+        vector<double> true_val;
+        analytic_solution_gamma( S0,  r,  v, true_val);
         
         // run the simulation
         if(icompare(method, "milstein") ) {
@@ -598,23 +642,29 @@ class asian_option_geometric{
                     log_sum2 += log(s2);
                     log_sum3 += log(s3);
                 }
-                numerator = pay_off(exp(log_sum1 / N)) - 2*pay_off(exp(log_sum2 / N)) + pay_off(exp(log_sum3 / N ));
-                price_dff_sum += numerator;
-                price_dff_sqr_sum += pow( numerator , 2);
+                
+                this_price_1 = pay_off(exp(log_sum1 / N))* discount;
+                this_price_2 = pay_off(exp(log_sum2 / N))* discount;
+                this_price_3 = pay_off(exp(log_sum3 / N))* discount;
+                
+                numerator = ( this_price_1 - 2*this_price_2 + this_price_3 );
+                this_greek = numerator / pow(h,2);
+                greek_sum += this_greek;
+                greek_sum_sqr += pow(this_greek,2);
+                
+                this_err = this_greek - true_val[0];
+                err_sum += this_err;
+                err_sum_sqr += pow(this_err,2);
                 
             }
-            res_val = ( price_dff_sum / no_sims ) / pow(h,2);
-            
-            expectation = res_val;
-            
-            var = price_dff_sqr_sum / ( no_sims * pow(h,4) ) - pow( expectation, 2);
+            res_val = greek_sum / no_sims;
+            expectation = err_sum / no_sims;
+            var = err_sum_sqr / no_sims - pow( expectation, 2);
             
             // record time
             duration = (clock() - c) / (double)CLOCKS_PER_SEC;
             
         } else if(icompare(method, "euler")){
-            
-            // use milstein if requested
             for (unsigned int i = 0; i < no_sims; i++) {
                 vector<double> z = normal_generator(N); //generate normal vector of size N, for both price1 AND price2
                 double log_sum1 = 0, log_sum2 = 0, log_sum3 = 0;
@@ -628,16 +678,24 @@ class asian_option_geometric{
                     log_sum2 += log(s2);
                     log_sum3 += log(s3);
                 }
-                numerator = pay_off(exp(log_sum1 / N)) - 2*pay_off(exp(log_sum2 / N)) + pay_off(exp(log_sum3 / N ));
-                price_dff_sum += numerator;
-                price_dff_sqr_sum += pow( numerator , 2);
+                
+                this_price_1 = pay_off(exp(log_sum1 / N))* discount;
+                this_price_2 = pay_off(exp(log_sum2 / N))* discount;
+                this_price_3 = pay_off(exp(log_sum3 / N))* discount;
+                
+                numerator = ( this_price_1 - 2*this_price_2 + this_price_3 );
+                this_greek = numerator / pow(h,2);
+                greek_sum += this_greek;
+                greek_sum_sqr += pow(this_greek,2);
+                
+                this_err = this_greek - true_val[0];
+                err_sum += this_err;
+                err_sum_sqr += pow(this_err,2);
                 
             }
-            res_val = ( price_dff_sum / no_sims ) / pow(h,2);
-            
-            expectation = res_val;
-            
-            var = price_dff_sqr_sum / ( no_sims * pow(h,4) ) - pow( expectation, 2);
+            res_val = greek_sum / no_sims;
+            expectation = err_sum / no_sims;
+            var = err_sum_sqr / no_sims - pow( expectation, 2);
             
             // record time
             duration = (clock() - c) / (double)CLOCKS_PER_SEC;
@@ -681,6 +739,52 @@ class asian_option_geometric{
     }
 
 public :
+    vector<double> TEST(double S0, double r,double v,unsigned int no_sims,vector<double>& res){
+        
+        // prameter initlisation
+        clock_t c;
+        c = clock();// start the timer
+        double duration;
+        double price = 0;
+        double dt = (double)T / N;
+        double dt_sqr = pow((double)T / N, 0.5); // ADDED: Casting T to double
+        double mean_sqr = 0;
+        
+        vector<double> price_vec;
+        
+        // run the simulation, NO variance reduction
+        for (unsigned int i = 0; i < no_sims; i++) {
+            vector<double> z = normal_generator(N); //generate normal vector of size N
+            double log_sum = 0;
+            double s = S0;
+            
+            for (unsigned int j = 0;j < N;j++) {
+                s += r * s*dt + v * s*dt_sqr*z[j] + 0.5 * v * ( v * s ) * dt * ( z[j]*z[j] - 1 ) ;
+                log_sum += log(s);
+            }
+            price_vec.push_back( pay_off(exp(log_sum / N))*exp(-r * T) );
+            price += pay_off(exp(log_sum / N));
+            mean_sqr += pow(pay_off(exp(log_sum / N )),2);
+            
+        }
+        
+        // record time
+        duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+        // return results
+        // handle edge cases
+        double C = (price / no_sims)*exp(-r * T);
+        res.push_back(C); // price
+        res.push_back(duration); //time
+        res.push_back(C); //mean
+        res.push_back((mean_sqr *exp(-r * T) *exp(-r * T) / no_sims) - pow(C, 2)); //variance
+        
+        output_file("dist.csv",price_vec);
+        return price_vec;
+        
+    }
+    
+    
+    
     // an asian option has time to maturity T,K,initial price and interest rate
     asian_option_geometric(const string& type,double T,int N, double K):T(T),N(N),K(K){
         if(icompare(type,"call")){
@@ -775,11 +879,11 @@ public :
             cout << "gamma = " << gamma[0] << endl;
             
             vega = calculate_vega("analytic","analytic", s0, r, v);
-            cout << "vega = " << vega[0] << endl;
+            cout << "vega  = " << vega[0] << endl;
             
             cout << endl;
         } else {
-            cout << "price = " << endl << endl;
+            cout << "price    = " << endl << endl;
             price = calculate_price(method, s0, r, v, no_sims);
             res_print(price);
             cout << endl;
@@ -795,7 +899,7 @@ public :
             cout << endl;
             
             vega = calculate_vega(method, "fd", s0, r, v, no_sims, h);
-            cout << "vega_fd = " << endl << endl;
+            cout << "vega_fd  = " << endl << endl;
             res_print(vega);
             
             cout << endl;
@@ -805,8 +909,8 @@ public :
     void price_report(string method, double s0, double r, double v, vector<double> &no_sims_list) {
         vector< vector<double> > output;
         for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
-            cout << i << endl;
             output.push_back( calculate_price(method, s0, r,v , no_sims_list[i]) );
+            cout << (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
         }
         
         output_file("price.csv",output);
@@ -870,7 +974,7 @@ int main() {
 	double s0 = 100;
 	double r = 0.05;
 	double v = 0.4;
-	int no_sims = 1000;
+	int no_sims = 100000;
     double h = 0.01;
     
     // cout << "Input number of simulation: ";
@@ -884,14 +988,16 @@ int main() {
     opt.full_report("milstein", s0, r, v, no_sims, h);
     
     vector<double> no_sims_list;
-    int start = 1, end = 100000, num_incre = 20;
+    int start = 1000, end = 1000000, num_incre = 5;
     for(int m = start; m <= end; m += (end-start)/num_incre ) {
         no_sims_list.push_back(m);
     }
-    // print(no_sims_list);
     // opt.price_report("milstein",s0,r,v,no_sims_list);
     
     // normal_convergence_test();
+    
+    vector<double> res;
+    // opt.TEST( s0,  r, v, no_sims, res);
     
     cout << "DONE" << endl;
     
