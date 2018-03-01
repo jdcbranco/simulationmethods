@@ -18,6 +18,14 @@
 using namespace std;
 
 
+
+void hline(int n) {
+    for(int i = 0; i < n; i++ ) {
+        cout << "-";
+    }
+    cout << endl;
+}
+
 //model independent string comparision
 bool icompare_pred(unsigned char a, unsigned char b){
 		return tolower(a) == tolower(b);
@@ -207,6 +215,7 @@ class asian_option_geometric{
         
         // prameter initlisation
         clock_t c;
+        c = clock();// start the timer
         double duration;
         double price = 0;
         double dt = (double)T / N;
@@ -326,7 +335,7 @@ class asian_option_geometric{
             
             expectation = delta;
             
-            var = price_dff_sqr_sum / ( no_sims * 2*h*h ) - pow( expectation, 2);
+            var = price_dff_sqr_sum / ( no_sims * 4*h*h ) - pow( expectation, 2);
             
             // record time
             duration = (clock() - c) / (double)CLOCKS_PER_SEC;
@@ -479,7 +488,7 @@ class asian_option_geometric{
             
             expectation = vega;
             
-            var = price_dff_sqr_sum / ( no_sims * 2*h*h ) - pow( expectation, 2);
+            var = price_dff_sqr_sum / ( no_sims * 4*h*h ) - pow( expectation, 2);
             
             // record time
             duration = (clock() - c) / (double)CLOCKS_PER_SEC;
@@ -717,18 +726,59 @@ public :
         return gamma;
     };
     
+    void full_report(string method, double s0, double r, double v, int no_sims = 100000, double h = 0.01) {
+        hline(20);
+        cout << "Using method: " << method << endl;
+        hline(20);
+        
+        vector<double> price,delta,gamma,vega;
+        
+        if(icompare(method,"analytic")) {
+            price = calculate_price(method, s0, r, v);
+            cout << "price = " << price[0] << endl;
+            
+            delta = calculate_delta("analytic","analytic", s0, r,v);
+            cout << "delta = " << delta[0] << endl;
+            
+            gamma = calculate_gamma("analytic","analytic", s0, r, v);
+            cout << "gamma = " << gamma[0] << endl;
+            
+            vega = calculate_vega("analytic","analytic", s0, r, v);
+            cout << "vega = " << vega[0] << endl;
+            
+            cout << endl;
+        } else {
+            cout << "price = " << endl << endl;
+            price = calculate_price(method, s0, r, v, no_sims);
+            res_print(price);
+            cout << endl;
+            
+            cout << "delta_fd = " << endl << endl;
+            delta = calculate_delta(method, "fd", s0, r,v , no_sims, h);
+            res_print(delta);
+            cout << endl;
+            
+            cout << "gamma_fd = " << endl << endl;
+            delta = calculate_gamma(method, "fd", s0, r,v , no_sims, h);
+            res_print(delta);
+            cout << endl;
+            
+            vega = calculate_vega(method, "fd", s0, r, v, no_sims, h);
+            cout << "vega_fd = " << endl << endl;
+            res_print(vega);
+            
+            cout << endl;
+        }
+        
+        
+    }
+    
 };
 
-void hline(int n) {
-    for(int i = 0; i < n; i++ ) {
-        cout << "-";
-    }
-    cout << endl;
-}
 
 int main() {
 	int T = 1;
-	unsigned int N = 100;
+	unsigned int N = 1000;
 	double K = 100;
 	string method = "euler";
 	string type = "call";
@@ -736,73 +786,16 @@ int main() {
 	double r = 0.05;
 	double v = 0.4;
 	int no_sims = 100000;
-    double h = 0.1;
+    double h = 0.01;
     vector<double> res, delta, price, vega,gamma;
     
 
 	srand(time(NULL));
 	asian_option_geometric opt(type,T,N,K);
     
-    
-    hline(20);
-	cout << "Analytic: " << endl;
-    hline(20);
-    res = opt.calculate_price("analytic", s0, r, v);
-    cout << "price = " << res[0] << endl;
-    delta = opt.calculate_delta("analytic","analytic", s0, r,v);
-    cout << "delta = " << delta[0] << endl;
-    gamma = opt.calculate_gamma("analytic","analytic", s0, r, v);
-    cout << "gamma = " << gamma[0] << endl;
-    vega = opt.calculate_vega("analytic","analytic", s0, r, v);
-    cout << "vega = " << vega[0] << endl;
-	cout << endl;
-    
-
-    hline(20);
-	cout << "Euler NA: " << "n = " << no_sims << endl;
-    hline(20);
-    cout << "price = " << endl << endl;
-    price = opt.calculate_price("euler", s0, r, v, no_sims);
-	res_print(price);
-    cout << endl;
-    
-    cout << "delta_fd = " << endl << endl;
-    delta = opt.calculate_delta("euler", "fd", s0, r,v , no_sims, h);
-    res_print(delta);
-    cout << endl;
-    
-    cout << "gamma_fd = " << endl << endl;
-    delta = opt.calculate_gamma("euler", "fd", s0, r,v , no_sims, h);
-    res_print(delta);
-    cout << endl;
-    
-    vega = opt.calculate_vega("euler", "fd", s0, r, v, no_sims, h);
-    cout << "vega_fd = " << endl << endl;
-    res_print(vega);
-    cout << endl;
-
-    hline(20);
-    cout << "Milstein: " << "n = " << no_sims << endl;
-    hline(20);
-    cout << "price = " << endl << endl;
-    res = opt.calculate_price("milstein", s0, r, v, no_sims);
-    res_print(res);
-    cout << endl;
-    
-    delta = opt.calculate_delta("milstein", "fd", s0, r,v , no_sims, h);
-    cout << "delta_fd = " << endl << endl;
-    res_print(delta);
-    cout << endl;
-    
-    cout << "gamma_fd = " << endl << endl;
-    delta = opt.calculate_gamma("milstein", "fd", s0, r,v , no_sims, h);
-    res_print(delta);
-    cout << endl;
-    
-    vega = opt.calculate_vega("milstein", "fd", s0, r, v, no_sims, h);
-    cout << "vega_fd = " << endl << endl;
-    res_print(vega);
-    cout << endl;
+    opt.full_report("analytic", s0, r, v, no_sims, h);
+    opt.full_report("euler", s0, r, v, no_sims, h);
+    opt.full_report("milstein", s0, r, v, no_sims, h);
     
 	int dummy;
 	cin >> dummy;
