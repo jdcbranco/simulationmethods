@@ -910,10 +910,44 @@ public :
         vector< vector<double> > output;
         for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
             output.push_back( calculate_price(method, s0, r,v , no_sims_list[i]) );
-            cout << (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
+            cout << "Price stats: " <<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
         }
-        
-        output_file("price.csv",output);
+        string name = "price.csv";
+        output_file(name,output);
+        cout << "Price stats output as: " << name << endl << endl;
+    }
+    
+    void delta_report(string method, double s0, double r, double v, vector<double> &no_sims_list, double h = 0.01) {
+        vector< vector<double> > delta;
+        for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
+            delta.push_back( calculate_delta(method, "fd", s0, r,v , no_sims_list[i], h) );
+            cout << "Delta stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
+        }
+        string name = "delta.csv";
+        output_file(name,delta);
+        cout << "Delta stats output as: " << name << endl << endl;
+    }
+    
+    void gamma_report(string method, double s0, double r, double v, vector<double> &no_sims_list, double h = 0.01) {
+        vector< vector<double> > gamma;
+        for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
+            gamma.push_back( calculate_gamma(method, "fd", s0, r,v , no_sims_list[i], h) );
+            cout << "Gamma stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
+        }
+        string name = "gamma.csv";
+        output_file(name,gamma);
+        cout << "Gamma stats output as: " << name << endl << endl;
+    }
+    
+    void vega_report(string method, double s0, double r, double v, vector<double> &no_sims_list, double h = 0.01) {
+        vector< vector<double> > vega;
+        for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
+            vega.push_back( calculate_vega(method, "fd", s0, r,v , no_sims_list[i], h) );
+            cout << "Vega stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
+        }
+        string name = "vega.csv";
+        output_file(name,vega);
+        cout << "Vega stats output as: " << name << endl << endl;
     }
 };
 
@@ -983,24 +1017,24 @@ int main() {
     
 	srand(time(NULL));
 	asian_option_geometric opt(type,T,N,K);
+    
+    
     opt.full_report("analytic", s0, r, v, no_sims, h);
     opt.full_report("euler", s0, r, v, no_sims, h);
     opt.full_report("milstein", s0, r, v, no_sims, h);
     
+    
     vector<double> no_sims_list;
-    int start = 1000, end = 1000000, num_incre = 5;
+    int start = 10, end = no_sims, num_incre = 10;
     for(int m = start; m <= end; m += (end-start)/num_incre ) {
         no_sims_list.push_back(m);
     }
-    // opt.price_report("milstein",s0,r,v,no_sims_list);
-    
-    // normal_convergence_test();
-    
-    vector<double> res;
-    // opt.TEST( s0,  r, v, no_sims, res);
+    opt.price_report("milstein",s0,r,v,no_sims_list);
+    opt.delta_report("milstein",s0,r,v,no_sims_list,h);
+    opt.gamma_report("milstein",s0,r,v,no_sims_list,h);
+    opt.vega_report("milstein",s0,r,v,no_sims_list,h);
     
     cout << "DONE" << endl;
-    
 	int dummy;
 	cin >> dummy;
 	return 0;
