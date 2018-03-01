@@ -15,6 +15,8 @@
 #include <math.h>
 #include <chrono>
 #include <random>
+#include <fstream>
+
 using namespace std;
 
 
@@ -25,6 +27,30 @@ void hline(int n) {
     }
     cout << endl;
 }
+
+
+void output_file(string file_name, vector<double> &vec ) {
+    ofstream fout;
+    fout.open (file_name);
+    for(unsigned int i = 0; i < vec.size(); i++ ) {
+        fout << vec[i] << endl;
+    }
+    fout.close();
+}
+
+void output_file(string file_name, vector< vector<double> > &mat ) {
+    ofstream fout;
+    fout.open (file_name);
+    for(unsigned int i = 0; i < mat.size(); i++ ) {
+        for(unsigned int j = 0; j < mat[i].size() - 1; j++ ) {
+            fout << mat[i][j] << ",";
+        }
+        fout << mat[i][mat[i].size()-1];
+        fout << endl;
+    }
+    fout.close();
+}
+
 
 //model independent string comparision
 bool icompare_pred(unsigned char a, unsigned char b){
@@ -170,10 +196,11 @@ class asian_option_geometric{
         duration = (clock()-c)/(double)CLOCKS_PER_SEC;
         // return results
         // handle edge cases
-        res.push_back((price/no_sims/2)*exp(-r*T)); // price
+        double C = (price / no_sims)*exp(-r * T);
+        res.push_back(C); // price
         res.push_back(duration); //time
-        res.push_back(price/no_sims/2); //mean
-        res.push_back((mean_sqr/no_sims/2)-pow((price/no_sims/2),2)); //variance
+        res.push_back(C); //mean
+        res.push_back((mean_sqr / no_sims) - pow(C, 2)); //variance
 
     }
     
@@ -204,10 +231,11 @@ class asian_option_geometric{
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
         // return results
         // handle edge cases
-        res.push_back((price / no_sims)*exp(-r * T)); // price
+        double C = (price / no_sims)*exp(-r * T);
+        res.push_back(C); // price
         res.push_back(duration); //time
-        res.push_back(price / no_sims); //mean
-        res.push_back((mean_sqr / no_sims) - pow((price / no_sims), 2)); //variance
+        res.push_back(C); //mean
+        res.push_back((mean_sqr / no_sims) - pow(C, 2)); //variance
         
     }
 
@@ -236,14 +264,17 @@ class asian_option_geometric{
             mean_sqr += pow(pay_off(exp(log_sum / N )),2);
             
         }
+        
+        
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
         // return results
         // handle edge cases
-        res.push_back((price / no_sims)*exp(-r * T)); // price
+        double C = (price / no_sims)*exp(-r * T);
+        res.push_back(C); // price
         res.push_back(duration); //time
-        res.push_back(price / no_sims); //mean
-        res.push_back((mean_sqr / no_sims) - pow((price / no_sims), 2)); //variance
+        res.push_back(C); //mean
+        res.push_back((mean_sqr / no_sims) - pow(C, 2)); //variance
         
     }
 	
@@ -769,33 +800,100 @@ public :
             
             cout << endl;
         }
-        
-        
     }
     
+    void price_report(string method, double s0, double r, double v, vector<double> &no_sims_list) {
+        vector< vector<double> > output;
+        for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
+            cout << i << endl;
+            output.push_back( calculate_price(method, s0, r,v , no_sims_list[i]) );
+        }
+        
+        output_file("price.csv",output);
+    }
 };
+
+
+double mean(vector<double> &vec ) {
+    double sum = 0;
+    for(unsigned int i = 0; i < vec.size(); i++ ) {
+        sum += vec[i];
+    }
+    return sum / vec.size();
+}
+
+double var(vector<double> &vec) {
+    double sum_sqr = 0;
+    double m = mean(vec);
+    for(unsigned int i = 0; i < vec.size(); i++ ){
+        sum_sqr += pow( vec[i] , 2);
+    }
+    return sum_sqr / vec.size() - pow(m,2);
+}
+
+double sum(vector<double> &vec) {
+    double sum = 0;
+    for(unsigned int i = 0; i < vec.size(); i++ ) {
+        sum += vec[i];
+    }
+    return sum;
+}
+
+void normal_convergence_test() {
+    int start = 1000, end = 100000, increment = 10000/2;
+    vector<double> output;
+    for(int m = start; m <= end; m += increment) {
+        vector<double> mc_sample;
+        for( int n = 0; n < 100; n++ ) {
+            vector<double> test_sample = normal_generator(m);
+            mc_sample.push_back( mean(test_sample) );
+        }
+        
+        // cout << "mean = " << mean(test_sample) << endl;
+        cout << "var  = " << var(mc_sample) << endl;
+        output.push_back( var(mc_sample) );
+        // no_sims_list.push_back(m);
+    }
+    
+    output_file("test.csv",output);
+    
+}
+
 
 
 int main() {
 	int T = 1;
-	unsigned int N = 1000;
+	unsigned int N = 100;
 	double K = 100;
 	string method = "euler";
 	string type = "call";
 	double s0 = 100;
 	double r = 0.05;
 	double v = 0.4;
-	int no_sims = 100000;
+	int no_sims = 1000;
     double h = 0.01;
-    vector<double> res, delta, price, vega,gamma;
     
-
+    // cout << "Input number of simulation: ";
+    // cin >> no_sims;
+    
+    
 	srand(time(NULL));
 	asian_option_geometric opt(type,T,N,K);
-    
     opt.full_report("analytic", s0, r, v, no_sims, h);
     opt.full_report("euler", s0, r, v, no_sims, h);
     opt.full_report("milstein", s0, r, v, no_sims, h);
+    
+    vector<double> no_sims_list;
+    int start = 1, end = 100000, num_incre = 20;
+    for(int m = start; m <= end; m += (end-start)/num_incre ) {
+        no_sims_list.push_back(m);
+    }
+    // print(no_sims_list);
+    // opt.price_report("milstein",s0,r,v,no_sims_list);
+    
+    // normal_convergence_test();
+    
+    cout << "DONE" << endl;
     
 	int dummy;
 	cin >> dummy;
