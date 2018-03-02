@@ -1054,7 +1054,7 @@ void vega_export_for_changing_M(asian_option_geometric &opt, string method, doub
         
         cout << "vega stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
     }
-    string name = "delta.csv";
+    string name = "vega.csv";
     output_file(name,output);
     cout << "vega stats output as: " << name << endl << endl;
 }
@@ -1105,6 +1105,14 @@ void normal_convergence_test() {
     
 }
 
+vector<double> linspace( int start = 10, int end = 100000, int num_incre = 10) {
+    vector<double> output;
+    for(int m = start; m <= end; m += (end-start)/num_incre ) {
+        output.push_back(m);
+    }
+    return output;
+}
+
 
 
 int main() {
@@ -1146,11 +1154,9 @@ int main() {
     
     */
     
-    vector<double> no_sims_list;
-    int start = 10, end = no_sims, num_incre = 10;
-    for(int m = start; m <= end; m += (end-start)/num_incre ) {
-        no_sims_list.push_back(m);
-    }
+    int start = 10, finish = no_sims, num_of_increments = 10;
+    vector<double> no_sims_list = linspace(start,finish,num_of_increments); // gives a series of integers from start to finish, with num_of_increments equal sized steps
+    
     price_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list);
     delta_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
     gamma_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
