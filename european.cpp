@@ -5,6 +5,7 @@
 #include <random>
 #include <algorithm>
 #include <chrono>
+#include <ctime>
 using namespace std;
 
 vector<double> static generate_normal(double mean = 0.0, double var = 1.0, int n = 1) {
@@ -17,7 +18,7 @@ vector<double> static generate_normal(double mean = 0.0, double var = 1.0, int n
 		double random_number = distribution(generator);
 		rand_numbers.push_back(random_number);
 	}
-	
+
 	return rand_numbers;
 }
 
@@ -76,7 +77,7 @@ public:
 	}
 
 	// generate n random numbers
-	
+
 
 	double mean_vector(vector<double> vect) {
 		double sum = 0.0;
@@ -156,6 +157,16 @@ public:
 			}
 		}
 		return payoff;
+	}
+
+
+	double variance_2(Derivatives d){
+		vector<double> payoffs = payoff_call(d);
+		for(int i=0;i<payoffs.size();i++){
+			payoffs[i]=pow(payoffs[i],2);
+		}
+		double variance =mean_vector(payoffs)-(CalculPrice(d)*CalculPrice(d));
+		return pow(variance,0.5);
 	}
 
 	double CalculVariance(Derivatives d){
@@ -248,10 +259,8 @@ public:
 			}
 		}
 		return (sum*exp(-r*T)*(pow(d1,2.0)-d1*sigma*pow(T,0.5)-1) /(S0*S0*sigma*sigma*T* normal_random.size()));
-		
 
 	}
-
 	*/
 	double CalculVega(Derivatives d, double h) {
 		// same derivative with volatility sigma-h
@@ -329,60 +338,95 @@ public:
 
 int main() {
 	double strike = 100;
-	int number_simulations = 1000000;
+	int number_simulations = 100000;
 	double sigma = 0.4;
 	double r = 0.05;
+
+
+
+	std::clock_t    start;
+	start = std::clock();
+
 	vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations);
+	std::cout << "Time taken to compute the normal vector: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
 	Derivatives call(strike, 100, 1.0, sigma);
 	MonteCarlo mc(call, r, 100, normal_vector);
 	Black_Scholes bs(call, r);
 
-	
+
 
 	// price of the option
+	start = std::clock();
 	double price_call_mc = mc.CalculPrice(call);
 	cout << "The Monte_Carlo price of the call is equal to " << price_call_mc << endl;
+	std::cout << "Time taken to compute the Monte_Carlo price: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
+	start = std::clock();
 	double price_call_bs = bs.CalculPrice();
 	cout << "The BS price of the call is equal to " << price_call_bs << endl;
+	std::cout << "Time taken to compute the BS price: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
+
 
 	double price_call_MC_antit = (mc.CalculPrice(call) + mc.CalculPrice(call ,-1)) / 2;
 	cout << "The MC price of the call using antithetic variables is equal to " << price_call_MC_antit << endl;
 
 	vector<double> v = mc.payoff_call(call, +1);
-	
-	vector<double> v_minus = mc.payoff_call(call, -1);
-	v.insert(v.end(), v_minus.begin(), v_minus.end());
 
-	double variance_antiT = mc.variance_vector(v);
-	cout << "The Monte_Carlo variance of the call using Antitetic variables is equal to " << variance_antiT << endl;
+	vector<double> call_price_vector;
+
+	for (int i=0;i<1000;i++){
+		vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations);
+		MonteCarlo mc(call, r, 100, normal_vector);
+		call_price_vector.push_back(mc.CalculPrice(call));
+	}
+	double variance_newmethod = mc.variance_vector(call_price_vector);
+	cout << "The Monte_Carlo variance of the call using the new method is  " << variance_newmethod << endl;
+
+	//double variance_antiT = mc.variance_vector(v);
+	//cout << "The Monte_Carlo variance of the call using Antitetic variables is equal to " << variance_antiT << endl;
 
 
 	//mean
-	double variance_MC = mc.CalculVariance(call);
+
+	double variance_MC = mc.variance_2(call);
 	cout << "The Monte_Carlo variance of the call is equal to " << variance_MC << endl;
 
 
 	// delta
 	/*double delta_mc = mc.CalculDelta(call, 1000000, 0.1);
 	cout << "The Monte_Carlo delta is equal to "<< delta_mc << endl;*/
+	start = std::clock();
 	double delta_bs = bs.CalculDelta();
+	std::cout << "Time taken to compute the delta_BS price: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
+
 	cout << "The BS delta is equal to " << delta_bs << endl;
+
+	start = std::clock();
 	double delta_new = mc.CalculDelta_2(call);
+	std::cout << "Time taken to compute the delta_1 MC price: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
 	cout << "The Monte_Carlo delta_1 is equal to " << delta_new << endl;
 
 	// gamma
-	
 
+	start = std::clock();
 	double gamma_mc = mc.CalculGamma(call,0.5);
 	cout << "The MonteCarlo gamma is equal to " << gamma_mc << endl;
+	std::cout << "Time taken to compute the Gamma MC price: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
 
+	start = std::clock();
 	double gamma_bs = bs.CalculGamma();
 	cout << "The BS gamma is equal to " << gamma_bs << endl;
+	std::cout << "Time taken to compute the BS Gamma price: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
 
 	// vega
+	start = std::clock();
 	double vega_mc = mc.CalculVega_2(call);
+	std::cout << "Time taken to compute the MC Vega price: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
 	cout << "The Monte Carlo vega is equal to " << vega_mc << endl;
+
+	start = std::clock();
 	double vega_bs = bs.CalculVega();
 	cout << "The BS vega is equal to " << vega_bs << endl;
+
+	std::cout << "Time taken to compute the BS Vega price: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
 	return 0;
 }
