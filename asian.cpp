@@ -19,11 +19,16 @@
 
 using namespace std;
 
-
-
 void hline(int n) {
     for(int i = 0; i < n; i++ ) {
         cout << "-";
+    }
+    cout << endl;
+}
+
+void dotline(int n) {
+    for(int i = 0; i < n; i++ ) {
+        cout << ".";
     }
     cout << endl;
 }
@@ -121,12 +126,17 @@ void print(vector<double> &vec) {
 	}
 }
 
-void res_print(vector<double> res) {
-	cout << "   estimate = " << res[0] << endl;
-	cout << "   time     = " << res[1] << endl;
-	cout << "   err_mean = " << res[2] << endl;
-	cout << "   err_var  = " << res[3] << endl;
-
+void res_print(vector<double> &res) {
+    
+    if(res.size() < 3) {
+        cout << "   value    = " << res[0] << endl;
+        cout << "   time     = " << res[1] << endl;
+    } else {
+        cout << "   estimate = " << res[0] << endl;
+        cout << "   time     = " << res[1] << endl;
+        cout << "   err_mean = " << res[2] << endl;
+        cout << "   err_var  = " << res[3] << endl;
+    }
 }
 
 double normalCDF(double value) {
@@ -137,13 +147,8 @@ double normalPDF(double value) {
 	return (1 / sqrt(2 * M_PI)) * exp(-0.5 * pow(value, 2));
 }
 
-double euler_increment(double &s, double &r, double &v, double &dt, double &dt_sqr, double &Z) {
-    return r*s*dt + v*s*dt_sqr*Z;
-}
+/*************************************************/
 
-double milstein_increment(double &s, double &r, double &v, double &dt, double &dt_sqr, double &Z) {
-    return r*s*dt + v*s*dt_sqr*Z  + 0.5 * v * ( v * s ) * dt * ( Z*Z - 1 ) ;
-}
 
 class asian_option_geometric{
     double T; // terminal time
@@ -315,8 +320,6 @@ class asian_option_geometric{
 
 		res.push_back(price);
 		res.push_back(duration);
-		res.push_back(price);
-		res.push_back(0.0);
 	}
     
     void MC_fd_delta(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
@@ -737,6 +740,24 @@ class asian_option_geometric{
         res.push_back( duration );
         
     }
+    
+    void display_opening(string target_val, string method1, string method2 ) {
+        hline(50);
+        cout << target_val <<" using method: " << method1 << " with " << method2 << endl;
+    }
+    
+    void display_opening(string target_val, string method1) {
+        hline(50);
+        cout << target_val <<" using method: " << method1 << endl;
+    }
+    
+    void display_ending() {
+        hline(50);
+    }
+    
+    void display_section_split() {
+        dotline(50);
+    }
 
 public :
     vector<double> TEST(double S0, double r,double v,unsigned int no_sims,vector<double>& res){
@@ -798,7 +819,7 @@ public :
     }
 
     // this function calculate the option price at time 0 and analytic statistics
-    vector<double> calculate_price(const string& method, double S0, double r, double v, int no_sims = 100000) {
+    vector<double> calculate_price(const string& method, double S0, double r, double v, int no_sims = 100000, bool display_flag = true) {
         // return containeer
         vector<double> res;
 
@@ -810,147 +831,234 @@ public :
         } else if (icompare(method,"analytic")){
             analytic_solution_pricing(S0, r, v, res);
         } else {
-            // edge case: prcing method known
+            cout << "method " << method << " not recognized, please choose another" << endl;
         }
+        
+        string name = "PRICE";
+        if(display_flag) {
+            display_opening(name,method);
+            
+            display_section_split();
+            
+            cout << "   S0       = " << S0 << endl;
+            cout << "   r        = " << r  << endl;
+            cout << "   v        = " << v  << endl;
+            
+            if( !icompare(method,"analytic") ) {
+                cout << "   M        = " << no_sims << endl;
+            }
+            display_section_split();
+            res_print(res);
+            display_ending();
+        }
+        
         return res;
+        
     }
 
     // this function calculate delta at time 0 and return analytic statistics
-    vector<double> calculate_delta(string method, string method2, double S0, double r, double v, int no_sims = 100000, double h = 0.01) {
+    vector<double> calculate_delta(string method, string method2, double S0, double r, double v, int no_sims = 100000, double h = 0.01, bool display_flag = true ) {
+        // method is between euler/ emilistein
         // method2 is the user choice of between finite difference/ pathwise/ likelihood ratio
-        vector<double> delta;
+        vector<double> res;
         
         if(icompare(method2, "fd")) {
-            MC_fd_delta(method, S0, r, v, no_sims, delta, h);
+            MC_fd_delta(method, S0, r, v, no_sims, res, h);
+            //MC_fd_delta_alt(method, S0, r, v, no_sims, delta, h);
+            
+            
         } else if(icompare(method2, "pw")) {
-            MC_pw_delta(method, S0, r, v, no_sims, delta);
+            MC_pw_delta(method, S0, r, v, no_sims, res);
+            
+            
         } else if(icompare(method2, "analytic") ) {
-            analytic_solution_delta(S0,r,v,delta);
+            analytic_solution_delta(S0,r,v,res);
         } else {
             // edge case:
         }
-    
-        return delta;
+        
+        string name = "DELTA";
+        if(display_flag) {
+            display_opening(name,method,method2);
+            
+            display_section_split();
+            
+            cout << "   S0       = " << S0 << endl;
+            cout << "   r        = " << r  << endl;
+            cout << "   v        = " << v  << endl;
+            
+            if( !icompare(method2,"analytic") ) {
+                cout << "   M        = " << no_sims << endl;
+                cout << "   h        = " << h << endl;
+            }
+            
+            display_section_split();
+            
+            res_print(res);
+            display_ending();
+        }
+        
+        return res;
     };
     
 	// this function calculate vega at time 0 and return analytic statistics
-    vector<double> calculate_vega(string method, string method2, double S0, double r, double v, int no_sims = 100000, double h = 0.01) {
-        vector<double> vega;
+    vector<double> calculate_vega(string method, string method2, double S0, double r, double v, int no_sims = 100000, double h = 0.01, bool display_flag = true) {
+        vector<double> res;
         
         if(icompare(method2, "fd")) {
-            MC_fd_vega(method, S0, r, v, no_sims, vega, h );
+            MC_fd_vega(method, S0, r, v, no_sims, res, h );
         } else if(icompare(method2, "analytic")) {
-            analytic_solution_vega(S0,r,v,vega);
+            analytic_solution_vega(S0,r,v,res);
         } else {
             // edge case:
         }
-        return vega;
+        
+        string name = "VEGA";
+        if(display_flag) {
+            display_opening(name,method,method2);
+            
+            display_section_split();
+            
+            cout << "   S0       = " << S0 << endl;
+            cout << "   r        = " << r  << endl;
+            cout << "   v        = " << v  << endl;
+            
+            if( !icompare(method2,"analytic") ) {
+                cout << "   M        = " << no_sims << endl;
+                cout << "   h        = " << h << endl;
+            }
+            
+            display_section_split();
+            
+            res_print(res);
+            display_ending();
+        }
+        
+        return res;
     };
     
     // this function calculate vega at time 0 and return analytic statistics
-    vector<double> calculate_gamma(string method, string method2, double S0, double r, double v, int no_sims = 100000, double h = 0.01) {
-        vector<double> gamma;
+    vector<double> calculate_gamma(string method, string method2, double S0, double r, double v, int no_sims = 100000, double h = 0.01, bool display_flag = true) {
+        vector<double> res;
         
         if(icompare(method2, "fd")) {
-            MC_fd_gamma(method, S0, r, v, no_sims, gamma, h );
+            MC_fd_gamma(method, S0, r, v, no_sims, res, h );
         } else if(icompare(method2, "analytic")) {
-            analytic_solution_gamma(S0,r,v,gamma);
+            analytic_solution_gamma(S0,r,v,res);
         } else {
             // edge case:
         }
-        return gamma;
-    };
-    
-    void full_report(string method, double s0, double r, double v, int no_sims = 100000, double h = 0.01) {
-        hline(20);
-        cout << "Using method: " << method << endl;
-        hline(20);
         
-        vector<double> price,delta,gamma,vega;
+        string name = "GAMMA";
+        if(display_flag) {
+            display_opening(name,method,method2);
+            
+            display_section_split();
+            
+            cout << "   S0       = " << S0 << endl;
+            cout << "   r        = " << r  << endl;
+            cout << "   v        = " << v  << endl;
+            
+            if( !icompare(method2,"analytic") ) {
+                cout << "   M        = " << no_sims << endl;
+                cout << "   h        = " << h << endl;
+            }
+            
+            display_section_split();
+            
+            res_print(res);
+            display_ending();
+        }
         
-        if(icompare(method,"analytic")) {
-            price = calculate_price(method, s0, r, v);
-            cout << "price = " << price[0] << endl;
-            
-            delta = calculate_delta("analytic","analytic", s0, r,v);
-            cout << "delta = " << delta[0] << endl;
-            
-            gamma = calculate_gamma("analytic","analytic", s0, r, v);
-            cout << "gamma = " << gamma[0] << endl;
-            
-            vega = calculate_vega("analytic","analytic", s0, r, v);
-            cout << "vega  = " << vega[0] << endl;
-            
-            cout << endl;
-        } else {
-            cout << "price    = " << endl << endl;
-            price = calculate_price(method, s0, r, v, no_sims);
-            res_print(price);
-            cout << endl;
-            
-            cout << "delta_fd = " << endl << endl;
-            delta = calculate_delta(method, "fd", s0, r,v , no_sims, h);
-            res_print(delta);
-            cout << endl;
-            
-            cout << "gamma_fd = " << endl << endl;
-            delta = calculate_gamma(method, "fd", s0, r,v , no_sims, h);
-            res_print(delta);
-            cout << endl;
-            
-            vega = calculate_vega(method, "fd", s0, r, v, no_sims, h);
-            cout << "vega_fd  = " << endl << endl;
-            res_print(vega);
-            
-            cout << endl;
-        }
-    }
-    
-    void price_report(string method, double s0, double r, double v, vector<double> &no_sims_list) {
-        vector< vector<double> > output;
-        for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
-            output.push_back( calculate_price(method, s0, r,v , no_sims_list[i]) );
-            cout << "Price stats: " <<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
-        }
-        string name = "price.csv";
-        output_file(name,output);
-        cout << "Price stats output as: " << name << endl << endl;
-    }
-    
-    void delta_report(string method, double s0, double r, double v, vector<double> &no_sims_list, double h = 0.01) {
-        vector< vector<double> > delta;
-        for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
-            delta.push_back( calculate_delta(method, "fd", s0, r,v , no_sims_list[i], h) );
-            cout << "Delta stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
-        }
-        string name = "delta.csv";
-        output_file(name,delta);
-        cout << "Delta stats output as: " << name << endl << endl;
-    }
-    
-    void gamma_report(string method, double s0, double r, double v, vector<double> &no_sims_list, double h = 0.01) {
-        vector< vector<double> > gamma;
-        for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
-            gamma.push_back( calculate_gamma(method, "fd", s0, r,v , no_sims_list[i], h) );
-            cout << "Gamma stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
-        }
-        string name = "gamma.csv";
-        output_file(name,gamma);
-        cout << "Gamma stats output as: " << name << endl << endl;
-    }
-    
-    void vega_report(string method, double s0, double r, double v, vector<double> &no_sims_list, double h = 0.01) {
-        vector< vector<double> > vega;
-        for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
-            vega.push_back( calculate_vega(method, "fd", s0, r,v , no_sims_list[i], h) );
-            cout << "Vega stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
-        }
-        string name = "vega.csv";
-        output_file(name,vega);
-        cout << "Vega stats output as: " << name << endl << endl;
+        
+        return res;
     }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+void price_export_for_changing_M( asian_option_geometric &opt, string method, double s0, double r, double v, vector<double> &no_sims_list ) {
+    vector< vector<double> > output;
+    vector<double> res;
+    int M;
+    for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
+        M = no_sims_list[i];
+        
+        res = opt.calculate_price(method, s0, r,v , M, false);
+        res.push_back( M );
+        output.push_back( res );
+        
+        cout << "Price stats: " <<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
+    }
+    string name = "price.csv";
+    output_file(name,output);
+    cout << "Price stats output as: " << name << endl << endl;
+}
+
+void delta_export_for_changing_M(asian_option_geometric &opt, string method, double s0, double r, double v, vector<double> &no_sims_list, double h = 0.01) {
+    vector< vector<double> > output;
+    vector<double> res;
+    int M;
+    for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
+        M = no_sims_list[i];
+        
+        res = opt.calculate_delta(method, "fd", s0, r, v, M, h, false);
+        res.push_back( M );
+        output.push_back( res );
+        
+        cout << "Delta stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
+    }
+    string name = "delta.csv";
+    output_file(name,output);
+    cout << "Delta stats output as: " << name << endl << endl;
+}
+
+void gamma_export_for_changing_M(asian_option_geometric &opt, string method, double s0, double r, double v, vector<double> &no_sims_list, double h = 0.01) {
+    vector< vector<double> > output;
+    vector<double> res;
+    int M;
+    for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
+        M = no_sims_list[i];
+        
+        res = opt.calculate_gamma(method, "fd", s0, r,v , M, h, false);
+        res.push_back( M );
+        output.push_back( res );
+        
+        cout << "gamma stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
+    }
+    string name = "gamma.csv";
+    output_file(name,output);
+    cout << "gamma stats output as: " << name << endl << endl;
+}
+
+void vega_export_for_changing_M(asian_option_geometric &opt, string method, double s0, double r, double v, vector<double> &no_sims_list, double h = 0.01) {
+    vector< vector<double> > output;
+    vector<double> res;
+    int M;
+    for (unsigned int i = 0; i<no_sims_list.size(); i++ ) {
+        M = no_sims_list[i];
+        
+        res = opt.calculate_vega(method, "fd", s0, r,v , M, h, false);
+        res.push_back( M );
+        output.push_back( res );
+        
+        cout << "vega stats: "<<  (int) ( (double)i/no_sims_list.size() *100 ) << "% DONE" << endl;
+    }
+    string name = "delta.csv";
+    output_file(name,output);
+    cout << "vega stats output as: " << name << endl << endl;
+}
+    
 
 double mean(vector<double> &vec ) {
     double sum = 0;
@@ -1018,21 +1126,35 @@ int main() {
 	srand(time(NULL));
 	asian_option_geometric opt(type,T,N,K);
     
+    /*
+     
+    opt.calculate_price("analytic",s0,r,v,no_sims);
+    opt.calculate_price("euler",s0,r,v,no_sims);
+    opt.calculate_price("milstein",s0,r,v,no_sims);
     
-    opt.full_report("analytic", s0, r, v, no_sims, h);
-    opt.full_report("euler", s0, r, v, no_sims, h);
-    opt.full_report("milstein", s0, r, v, no_sims, h);
+    opt.calculate_delta("analytic","analytic",s0,r,v,no_sims, h);
+    opt.calculate_delta("euler","fd",s0,r,v,no_sims, h);
+    opt.calculate_delta("milstein","fd",s0,r,v,no_sims, h);
+     
+    opt.calculate_gamma("analytic","analytic",s0,r,v,no_sims, h);
+    opt.calculate_gamma("euler","fd",s0,r,v,no_sims, h);
+    opt.calculate_gamma("milstein","fd",s0,r,v,no_sims, h);
     
+    opt.calculate_vega("analytic","analytic",s0,r,v,no_sims, h);
+    opt.calculate_vega("euler","fd",s0,r,v,no_sims, h);
+    opt.calculate_vega("milstein","fd",s0,r,v,no_sims, h);
+    
+    */
     
     vector<double> no_sims_list;
     int start = 10, end = no_sims, num_incre = 10;
     for(int m = start; m <= end; m += (end-start)/num_incre ) {
         no_sims_list.push_back(m);
     }
-    opt.price_report("milstein",s0,r,v,no_sims_list);
-    opt.delta_report("milstein",s0,r,v,no_sims_list,h);
-    opt.gamma_report("milstein",s0,r,v,no_sims_list,h);
-    opt.vega_report("milstein",s0,r,v,no_sims_list,h);
+    price_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list);
+    delta_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
+    gamma_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
+    vega_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
     
     cout << "DONE" << endl;
 	int dummy;
