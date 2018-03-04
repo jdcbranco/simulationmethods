@@ -6,24 +6,11 @@
 #include <random>
 #include <algorithm>
 #include <chrono>
-#include <ctime>
+#include "Normal.h"
+
 using namespace std;
 
-vector<double> static generate_normal(double mean = 0.0, double var = 1.0, int n = 1) {
-	int j;
-	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-	std::default_random_engine generator(seed);
-	normal_distribution<double> distribution(mean, var);
-	vector<double> rand_numbers;
-	for (j = 0; j < n; j = j + 1) {
-		double random_number = distribution(generator);
-		rand_numbers.push_back(random_number);
-	}
-
-	return rand_numbers;
-}
-
-
+Normal normal(Standard);
 
 class Derivatives {
 	double K;
@@ -135,7 +122,7 @@ public:
 	void euler_path() {
 	int i;
 	price_path = {d.get_S0()} ;
-	vector<double> normal_random = generate_normal(0.0, 1.0, N) ;
+	vector<double> normal_random = normal.generate(N) ;
 	for (i=1 ; i <N ; i = i+1) {
 	double S_i = price_path[i-1] + r*price_path[i-1]*d.get_T()/N + d.get_sigma()*price_path[i-1]*pow(d.get_T()/N , 0.5)*normal_random[i];
 	price_path.push_back(S_i);
@@ -338,7 +325,7 @@ public:
 
 vector<double> generate(const Derivatives &d, int number_simulations , double r = 0.05) {
     vector<double> results;
-    vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations);
+    vector<double> normal_vector = normal.generate(number_simulations);
     MonteCarlo mc(d, r, 100, normal_vector);
     double price_call_mc = mc.CalculPrice(d);
     double variance_mc = mc.variance_2(d);
@@ -378,7 +365,7 @@ vector<double> generate_mean_std(const Derivatives &d, int total_simulations,int
     int i;
     vector<double> results;
     for (i=0; i<total_simulations;i=i+1) {
-        vector<double> normal_vector = generate_normal(0.0, 1.0, n_simulations);
+        vector<double> normal_vector = normal.generate(n_simulations);
         MonteCarlo mc(d, r, 100, normal_vector);
         double price_call_mc = mc.CalculPrice(d);
         results.push_back(price_call_mc);
@@ -440,7 +427,7 @@ int main() {
 	std::clock_t    start;
 	start = std::clock();
 
-	vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations[2]);
+	vector<double> normal_vector = normal.generate(number_simulations[2]);
 	std::cout << "Time taken to compute the normal vector: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
 
 	MonteCarlo mc(call, r, 100, normal_vector);
@@ -466,7 +453,7 @@ int main() {
 	vector<double> call_price_vector;
 
 	for (int i=0;i<1000;i++){
-		vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations[2]);
+		vector<double> normal_vector = normal.generate(number_simulations[2]);
 		MonteCarlo mc(call, r, 100, normal_vector);
 		call_price_vector.push_back(mc.CalculPrice(call));
 	}

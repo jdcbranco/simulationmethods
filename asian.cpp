@@ -1,11 +1,3 @@
-//============================================================================
-// Name        : Stimulation_GT.cpp
-// Author      : Stanley
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
-//============================================================================
-
 #include <iostream>
 #include <vector>
 #include <string>
@@ -16,6 +8,10 @@
 #include <chrono>
 #include <random>
 #include <fstream>
+#include <algorithm>
+#include <iterator>
+
+#include "Normal.h"
 
 using namespace std;
 
@@ -72,48 +68,6 @@ bool icompare(string const& a, string const& b){
 		}
 }
 
-//normal random variable generator
-vector<double> normal_generator(unsigned int n){
-		double v1;
-		double v2;
-		double w;
-		vector<double> v;
-		for(unsigned int i=0;i<(n/2)+1;i++){
-				v1 = 2.0*rand()/RAND_MAX -1;
-				v2 = 2.0*rand()/RAND_MAX -1;
-				w = pow(v1,2) +pow(v2,2);
-				if(w<=1){
-					v.push_back(sqrt(-2*log(w)/w)*v1);
-					v.push_back(sqrt(-2*log(w)/w)*v2);
-				}else{
-					--i;
-				}
-			}
-		//size adjustment
-		if(v.size()>n+1){
-			v.pop_back();
-			v.pop_back();
-		}else{
-			v.pop_back();
-		}
-
-		return v;
-	}
-
-vector<double> generate_normal(int n = 1, double mean = 0.0, double var = 1.0) {
-	int j;
-	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-	std::default_random_engine generator(seed);
-	normal_distribution<double> distribution(mean, var);
-	vector<double> rand_numbers;
-	for (j = 0; j < n; j = j + 1) {
-		double random_number = distribution(generator);
-		rand_numbers.push_back(random_number);
-	}
-	return rand_numbers;
-}
-
-
 void print(double d) {
 	// basic print for double
 	cout << d << endl;
@@ -149,6 +103,8 @@ double normalPDF(double value) {
 
 /*************************************************/
 
+//Normal random number generator
+Normal normal(Standard);
 
 class asian_option_geometric{
     double T; // terminal time
@@ -178,7 +134,7 @@ class asian_option_geometric{
 
         // run the simulation and use antithetic variance reduction
         for(unsigned int i = 0;i < no_sims;i++) {
-            vector<double> z = normal_generator(N); //generate normal vector of size N
+            vector<double> z = normal.generate(N); //generate normal vector of size N
             double sum_u = 0;
             double sum_d = 0;
             double s_u = S0;
@@ -225,7 +181,7 @@ class asian_option_geometric{
         
         // run the simulation, NO variance reduction
         for (unsigned int i = 0; i < no_sims; i++) {
-            vector<double> z = normal_generator(N); //generate normal vector of size N
+            vector<double> z = normal.generate(N); //generate normal vector of size N
             double log_sum = 0;
             double s = S0;
             
@@ -271,7 +227,7 @@ class asian_option_geometric{
         
         // run the simulation, NO variance reduction
         for (unsigned int i = 0; i < no_sims; i++) {
-            vector<double> z = normal_generator(N); //generate normal vector of size N
+            vector<double> z = normal.generate(N); //generate normal vector of size N
             double log_sum = 0;
             double s = S0;
             
@@ -343,7 +299,7 @@ class asian_option_geometric{
         if(icompare(method, "milstein") ) {
             // use milstein if requested
             for (unsigned int i = 0; i < no_sims; i++) {
-                vector<double> z = normal_generator(N); //generate normal vector of size N, for both price1 AND price2
+                vector<double> z = normal.generate(N); //generate normal vector of size N, for both price1 AND price2
                 double log_sum1 = 0, log_sum2 = 0;
                 double s1 = S0 + h, s2 = S0 - h;
                 
@@ -375,7 +331,7 @@ class asian_option_geometric{
             
             // use milstein if requested
             for (unsigned int i = 0; i < no_sims; i++) {
-                vector<double> z = normal_generator(N); //generate normal vector of size N, for both price1 AND price2
+                vector<double> z = normal.generate(N); //generate normal vector of size N, for both price1 AND price2
                 double log_sum1 = 0, log_sum2 = 0;
                 double s1 = S0 + h, s2 = S0 - h;
                 
@@ -429,7 +385,7 @@ class asian_option_geometric{
         
         // run the simulation, NO variance reduction
         for (unsigned int i = 0; i < no_sims; i++) {
-            vector<double> z = normal_generator(N); //generate normal vector of size N
+            vector<double> z = normal.generate(N); //generate normal vector of size N
             double log_sum = log(S0);
             double s = S0;
             
@@ -507,7 +463,7 @@ class asian_option_geometric{
         // run the simulation
         if(icompare(method, "milstein") ) {
             for (unsigned int i = 0; i < no_sims; i++) {
-                vector<double> z = normal_generator(N); //generate normal vector of size N, for both price1 AND price2
+                vector<double> z = normal.generate(N); //generate normal vector of size N, for both price1 AND price2
                 double log_sum1 = 0, log_sum2 = 0;
                 double s1 = S0, s2 = S0;
                 double v1 = v + h, v2 = v - h;
@@ -538,7 +494,7 @@ class asian_option_geometric{
             
         } else if(icompare(method, "euler")){
             for (unsigned int i = 0; i < no_sims; i++) {
-                vector<double> z = normal_generator(N); //generate normal vector of size N, for both price1 AND price2
+                vector<double> z = normal.generate(N); //generate normal vector of size N, for both price1 AND price2
                 double log_sum1 = 0, log_sum2 = 0;
                 double s1 = S0, s2 = S0;
                 double v1 = v + h, v2 = v - h;
@@ -633,7 +589,7 @@ class asian_option_geometric{
         if(icompare(method, "milstein") ) {
             // use milstein if requested
             for (unsigned int i = 0; i < no_sims; i++) {
-                vector<double> z = normal_generator(N); //generate normal vector of size N, for both price1 AND price2
+                vector<double> z = normal.generate(N); //generate normal vector of size N, for both price1 AND price2
                 double log_sum1 = 0, log_sum2 = 0, log_sum3 = 0;
                 double s1 = S0 + h, s2 = S0, s3 = S0 - h;
                 
@@ -669,7 +625,7 @@ class asian_option_geometric{
             
         } else if(icompare(method, "euler")){
             for (unsigned int i = 0; i < no_sims; i++) {
-                vector<double> z = normal_generator(N); //generate normal vector of size N, for both price1 AND price2
+                vector<double> z = normal.generate(N); //generate normal vector of size N, for both price1 AND price2
                 double log_sum1 = 0, log_sum2 = 0, log_sum3 = 0;
                 double s1 = S0 + h, s2 = S0, s3 = S0 - h;
                 
@@ -775,7 +731,7 @@ public :
         
         // run the simulation, NO variance reduction
         for (unsigned int i = 0; i < no_sims; i++) {
-            vector<double> z = normal_generator(N); //generate normal vector of size N
+            vector<double> z = normal.generate(N); //generate normal vector of size N
             double log_sum = 0;
             double s = S0;
             
@@ -1086,12 +1042,12 @@ double sum(vector<double> &vec) {
 }
 
 void normal_convergence_test() {
-    int start = 1000, end = 100000, increment = 10000/2;
+    unsigned int start = 1000, end = 100000, increment = 10000/2;
     vector<double> output;
     for(int m = start; m <= end; m += increment) {
         vector<double> mc_sample;
         for( int n = 0; n < 100; n++ ) {
-            vector<double> test_sample = normal_generator(m);
+            vector<double> test_sample = normal.generate(m);
             mc_sample.push_back( mean(test_sample) );
         }
         
@@ -1114,8 +1070,17 @@ vector<double> linspace( int start = 10, int end = 100000, int num_incre = 10) {
 }
 
 
-
 int main() {
+
+//    This code helps identify any problem with the normal random number generator
+//    vector<double> lst1 = normal.generate(10);
+//    vector<double> lst2 = normal.generate(10);
+//    copy(lst1.begin(), lst1.end(), ostream_iterator<double>(cout," "));
+//    cout << endl;
+//    copy(lst2.begin(), lst2.end(), ostream_iterator<double>(cout," "));
+//    cout << endl;
+//    return 0;
+
 	int T = 1;
 	unsigned int N = 100;
 	double K = 100;
