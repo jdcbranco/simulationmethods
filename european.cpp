@@ -335,6 +335,58 @@ public:
 };
 
 
+vector<double> generate(const Derivatives &d, int number_simulations , double r = 0.05) {
+    vector<double> results;
+    vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations);
+    MonteCarlo mc(d, r, 100, normal_vector);
+    double price_call_mc = mc.CalculPrice(d);
+    double variance_mc = mc.variance_2(d);
+    double delta_mc = mc.CalculDelta(d, 0.1);
+    double gamma_mc = mc.CalculGamma(d,0.5);
+    double vega_mc = mc.CalculVega(d, 0.5);
+    results.push_back(number_simulations);
+    results.push_back(price_call_mc);
+    results.push_back(variance_mc);
+    results.push_back(delta_mc);
+    results.push_back(gamma_mc);
+    results.push_back(vega_mc);
+    return results;
+}
+
+double mean_vector(vector<double> vect) {
+    double sum = 0.0;
+    for (unsigned int i = 0; i<vect.size(); i = i + 1) {
+        sum = sum + vect[i];
+    }
+    return sum / vect.size();
+}
+
+double variance_vector(vector<double> v){
+    double mean = mean_vector(v);
+    double sum = 0.0;
+    for (int i = 0; i<v.size(); i++){
+        sum += pow(v[i] - mean, 2);
+    }
+    sum /= (v.size() - 1);
+    return pow(sum, 0.5);
+}
+
+vector<double> generate_mean_std(const Derivatives &d, int total_simulations,int n_simulations,double r = 0.05) {
+    // total_simulations : total number of call simulations
+    // n_simulations : number of simulation to generate a call price
+    int i;
+    vector<double> results;
+    for (i=0; i<total_simulations;i=i+1) {
+        vector<double> normal_vector = generate_normal(0.0, 1.0, n_simulations);
+        MonteCarlo mc(d, r, 100, normal_vector);
+        double price_call_mc = mc.CalculPrice(d);
+        results.push_back(price_call_mc);
+    }
+    double mean = mean_vector(results);
+    double std = variance_vector(results);
+    vector<double> res = {mean,std};
+    return res;
+}
 
 int main() {
 	double strike = 100;
@@ -342,7 +394,45 @@ int main() {
 	double sigma = 0.4;
 	double r = 0.05;
 
+	vector<double> number_simulations = {1000,5000,10000,25000,50000,100000,200000,500000} ;
+    
+    
+    ofstream fout("output.txt"); // creates an ofstream called fout
+    if (! fout.is_open()) { // test that file is open
+        cout << "Error opening output file." << endl;
+        return -1;
+    }
+    
+    for (int i = 0 ; i<number_simulations.size(); i=i+1) {
+        // fout << i+1 << "," ;
+        vector<double> res_sim = generate(call, number_simulations[i]);
+        fout << res_sim[0] ;
+        for (int j = 1 ; j < res_sim.size() ; j=j+1) {
+            fout << "," << res_sim[j]   ;
+        }
+        fout << endl;
+    }
+    fout.close();
+    
+    
+    vector<double> total_sim = {1000} ;
+    vector<double> sim_per_call = {1000,10000,20000,50000,100000,500000};
+    
+    
+    ofstream fout2("output_2.txt"); // creates an ofstream called fout
+    if (! fout2.is_open()) { // test that file is open
+        cout << "Error opening output file." << endl;
+        return -1;
+    }
+    
+    for (int j = 0 ; j < total_sim.size(); j=j+1) {
+        for (int k = 0; k< sim_per_call.size();k=k+1) {
+            vector<double> results = generate_mean_std(call, total_sim[j], sim_per_call[k]);
+            fout2 << total_sim[j] << " " << sim_per_call[k] << " " << results[0] << " " << results[1] << endl;
+        }
+    }
 
+    fout2.close();
 
 	std::clock_t    start;
 	start = std::clock();
