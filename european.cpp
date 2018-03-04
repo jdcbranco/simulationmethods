@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <random>
 #include <algorithm>
@@ -390,11 +391,13 @@ vector<double> generate_mean_std(const Derivatives &d, int total_simulations,int
 
 int main() {
 	double strike = 100;
-	int number_simulations = 100000;
+	//int number_simulations = 100000;
 	double sigma = 0.4;
 	double r = 0.05;
 
-	vector<double> number_simulations = {1000,5000,10000,25000,50000,100000,200000,500000} ;
+	Derivatives call(strike, 100, 1.0, sigma);
+
+	vector<int> number_simulations = {1000,5000,10000,25000,50000,100000,200000,500000} ;
     
     
     ofstream fout("output.txt"); // creates an ofstream called fout
@@ -437,12 +440,11 @@ int main() {
 	std::clock_t    start;
 	start = std::clock();
 
-	vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations);
+	vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations[2]);
 	std::cout << "Time taken to compute the normal vector: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
-	Derivatives call(strike, 100, 1.0, sigma);
+
 	MonteCarlo mc(call, r, 100, normal_vector);
 	Black_Scholes bs(call, r);
-
 
 
 	// price of the option
@@ -464,7 +466,7 @@ int main() {
 	vector<double> call_price_vector;
 
 	for (int i=0;i<1000;i++){
-		vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations);
+		vector<double> normal_vector = generate_normal(0.0, 1.0, number_simulations[2]);
 		MonteCarlo mc(call, r, 100, normal_vector);
 		call_price_vector.push_back(mc.CalculPrice(call));
 	}
