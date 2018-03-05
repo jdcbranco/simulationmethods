@@ -68,18 +68,6 @@ bool icompare(string const& a, string const& b){
 		}
 }
 
-void print(double d) {
-	// basic print for double
-	cout << d << endl;
-}
-
-void print(vector<double> &vec) {
-	// basic print for vector
-	for (unsigned int i = 0; i < vec.size(); i++) {
-		cout << vec[i] << endl;
-	}
-}
-
 void res_print(vector<double> &res) {
     
     if(res.size() < 3) {
@@ -104,7 +92,7 @@ double normalPDF(double value) {
 /*************************************************/
 
 //Normal random number generator
-Normal normal(Standard);
+Normal normal(Custom);
 
 class asian_option_geometric{
     double T; // terminal time
@@ -1031,14 +1019,6 @@ double var(vector<double> &vec) {
         sum_sqr += pow( vec[i] , 2);
     }
     return sum_sqr / vec.size() - pow(m,2);
-}
-
-double sum(vector<double> &vec) {
-    double sum = 0;
-    for(unsigned int i = 0; i < vec.size(); i++ ) {
-        sum += vec[i];
-    }
-    return sum;
 }
 
 void normal_convergence_test() {
