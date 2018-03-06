@@ -226,56 +226,8 @@ vector<double> a_estimate( vector<double> &x, vector<double> &y ) {
 }
 
 double solve_boundary( vector<double> &x, vector<double> &y, double K ) {
-    
-    vector<double> a_vec = a_estimate(x,y);
-    
-    double req_tol = 0.001, diff = 1, multiplier = 1;
-    
-    int counter = 1;
-    
-    double new_value ; ; // use last price in the moving window as initial guess value
-    double old_value;
-    
-    bool on_going = true;
-    
-    while( on_going ) {
-        
-        new_value = x[0];
-        diff = 1;
-        counter = 1;
-        
-        while( abs(diff) > req_tol ) {
-            
-            if (counter > 100) {
-                cout << "Warning: counter exceed 100" << endl;
-                break;
-            }
-            
-            old_value = new_value;
-            cout << "Counter: " << counter++ << ", ";
-            
-            diff = objective_F( a_vec, old_value, K ) / objective_f( a_vec, old_value, K);
-            cout << "diff = " << diff << ", " ;
-            
-            new_value = old_value - diff*multiplier;
-            
-            cout << new_value << endl;
-        }
-        
-        // FORCE STOP
-        on_going = false;
-        
-        if( abs(diff) > req_tol ) {
-            multiplier = multiplier * 0.9;
-            cout << "NOT DONE: decreasing multiplier by half: " << multiplier << endl;
-        } else {
-            cout << "DONE, multiplier = " << multiplier << endl;
-            on_going = false;
-        }
-    }
-    
-    cout << "DONE! with diff = " << diff << endl;
-    return new_value;
+    vector<double> a = a_estimate(x,y);
+    return ( -(a[1]+1) + pow( pow(a[1]+1,2) -4*a[2]*(a[0]-K), 0.5) ) / ( 2 * a[2] );
 }
 
 //Normal random number generator
@@ -366,10 +318,10 @@ class american_moving_average_asian {
     double V( int m_id, int t_id, double &r ) {
         if( t_id == N ) {
             // This is the last payoff in the path, there is no V_c to compare with
-            return ( A[m_id][t_id] - K ) * ( A[m_id][t_id] - K > 0 );
+            return ( K - A[m_id][t_id] ) * (  K - A[m_id][t_id] > 0 );
         } else if ( t_id < N ) {
             if( A[m_id][t_id] <= b[t_id] ) {
-                return A[m_id][t_id] - K;
+                return K - A[m_id][t_id];
             } else {
                 return exp(-r*T) * V( m_id, t_id + 1, r);
             }
@@ -385,8 +337,8 @@ class american_moving_average_asian {
         vector<double> y, x;
         
         for(int t_id = (N-1); t_id >= (1); t_id--) {
-            cout << t_id << endl;
             
+            // clean up vectors x,y
             y.clear();
             x.clear();
             
@@ -394,13 +346,8 @@ class american_moving_average_asian {
                 y.push_back( V(i, t_id + 1, r) * exp(-r*T) );
                 x.push_back( A[i][t_id] );
             }
-            cout << "y = ";
-            print(y);
-            cout << "x = ";
-            print(x);
             
             b[t_id] = solve_boundary( x, y, K );
-            print(b);
         }
     }
     
@@ -414,22 +361,23 @@ class american_moving_average_asian {
         compute_Z( no_sims );
         compute_A( S0, r, v); // if need to change parameter (i.e. finite difference greeks), can change at this step
         
-        print(Z);
-        cout << endl;
-        print(A);
-        cout << endl;
-        
         compute_b(r);
         
+        // the payoff of immediate exercies at time 0
+        double V_E = ( K - S0 ) * ( K - S0 >= 0 );
+        
+        // summing the payoff for holding the put option
+        double sum = 0;
+        for( unsigned int i = 0; i < no_sims; i++ ) {
+            sum += V(i, 1, r);
+        }
+        double V_C = exp(-r*T) * sum / no_sims;
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+        
         // return results
-        // handle edge cases
-        
-        double C = 3.14;
-        
-        res.push_back(C); // price
-        res.push_back(duration); //time
+        res.push_back( max( V_E, V_C ) ); // price
+        res.push_back( duration ); //time
     }
     
     
@@ -492,7 +440,7 @@ int main() {
     string type = "call";
     int T = 1;
     unsigned int N = 5;
-    double K = 0;
+    double K = 100;
     double W = 2;
     double S0 = 100;
     double r = 0.05;
@@ -502,6 +450,6 @@ int main() {
     srand(time(NULL));
     american_moving_average_asian opt(type,T,N,K,W);
     
-    opt.calculate_price("euler", S0, r, v, no_sims, false);
+    opt.calculate_price("euler", S0, r, v, no_sims, true);
     
 }
