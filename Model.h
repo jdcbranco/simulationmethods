@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include "Option.h"
+#include "ModelParams.h"
 
 using namespace std;
 
@@ -14,21 +15,23 @@ using namespace std;
 // * Constant interest rate
 // * Constant volatility
 // * One underlying + risk free interest rate product
-class Model {
+class Model: public ModelParams {
 protected:
     Option m_Option;
-    double m_S0; //initial price
-    double m_Sigma; //constant volatility throught the period.
-    double m_r; //risk free interest rate, constant throughout the period.
 public:
-    Model(Option option, double S0, double sigma, double r): m_Option(option), m_S0(S0), m_Sigma(sigma), m_r(r) {}
+    Model(Option &option, double S0, double sigma, double r): ModelParams(S0,sigma,r), m_Option(option) {}
+    Option getOption() const { return m_Option; }
+    double getT() const override {
+        return m_Option.getT();
+    }
     double discount(double price) const {
         return exp(-m_r*m_Option.getT());
     }
-    Option getOption() const { return m_Option; }
-    double getS0() const { return m_S0; }
-    double getSigma() const { return m_Sigma; }
-    double getR() const { return m_r; }
+    //Calculates the fair price and sensitivities for the option
+    virtual double calcPrice() const = 0;
+    virtual double calcDelta() const = 0;
+    virtual double calcGamma() const = 0;
+    virtual double calcVega() const = 0;
 };
 
 

@@ -4,17 +4,18 @@
 
 #include <vector>
 #include <cmath>
-#include "Model.h"
+#include "ModelParams.h"
 
 using namespace std;
 
 class Path {
 protected:
     vector<double> m_Prices; //non discounted price path
+    vector<double> &m_RandomNumbers;
 public:
-    Path(Model model, vector<double> &random_numbers, bool antithetic = false) {
+    Path(ModelParams &model, vector<double> &&random_numbers, bool antithetic = false): m_RandomNumbers(random_numbers) {
         double S0 = model.getS0();
-        double T = model.getOption().getT();
+        double T = model.getT();
         double r = model.getR();
         double sigma = model.getSigma();
         double dt = T / random_numbers.size();
@@ -25,6 +26,9 @@ public:
             double S_t = S0*exp((r - pow(sigma, 2.0) / 2) * t + sigma * pow(t, 0.5) * rn);
             m_Prices.push_back(S_t);
         }
+    }
+    double back() const {
+        return m_Prices.back();
     }
 };
 

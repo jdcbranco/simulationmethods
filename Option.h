@@ -8,18 +8,24 @@
 #include <vector>
 #include <functional>
 
+#include "Path.h"
+
 using namespace std;
+
+//This is necessary to to avoid circular reference, thus letting Option reference Path before Path is actually defined.
+//class Path;
 
 class Option {
 protected:
-    function<double (const vector<double>&)> m_Payoff;
+    function<const double (const Path&)> m_Payoff;
     double m_T; //Time to Expiry
 public:
-    Option(function<double (const vector<double>&)> payoff, double tte): m_T(tte), m_Payoff(payoff) {}
-    double payoff(vector<double> path) const {
+    Option(function<const double (const Path&)> payoff, double tte): m_T(tte), m_Payoff(payoff) {}
+    double payoff(const Path &path) const {
         return m_Payoff(path);
     }
     double getT() const { return m_T; }
+    function<const double(const Path&)> getPayoffFunction() const { return m_Payoff; }
 };
 
 
