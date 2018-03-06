@@ -2,9 +2,22 @@
 #ifndef SIMULATIONMETHODS_MODELRESULT_H
 #define SIMULATIONMETHODS_MODELRESULT_H
 
+#include <ostream>
+#include <string>
+
+using namespace std;
+
 class ModelResult {
     friend class Model;
     friend class MCModel;
+    friend ostream& operator<<(ostream& os, const ModelResult &modelResult) {
+        os << "Price: " << (modelResult.getPrice()) << endl;
+        os << "Delta: " << (modelResult.getDelta()) << endl;
+        os << "Gamma: " << (modelResult.getGamma()) << endl;
+        os << "Vega: "  << (modelResult.getVega()) << endl;
+        os << "Calc Time: " << (modelResult.getCalcTime()) << " ms" << endl;
+        return os;
+    };
     double price;
     double delta;
     double gamma;
@@ -28,12 +41,12 @@ protected:
     }
 public:
     ModelResult() {}
-    double getPrice() { return this->price; }
-    double getDelta() { return this->delta; }
-    double getGamma() { return this->gamma; }
-    double getVega() { return this->vega; }
-    double getCalcTime() { return this->calcTime; }
-};
+    double getPrice() const { return this->price; }
+    double getDelta() const { return this->delta; }
+    double getGamma() const { return this->gamma; }
+    double getVega() const { return this->vega; }
+    double getCalcTime() const { return this->calcTime; }
 
+};
 
 #endif //SIMULATIONMETHODS_MODELRESULT_H

@@ -17,15 +17,15 @@ using namespace std;
  * */
 class Option {
 protected:
-    function<const double (const Path&)> m_Payoff;
+    function<const double (const Path&, const Bump&)> m_Payoff;
     double m_T; //Time to Expiry
 public:
-    Option(function<const double (const Path&)> payoff, double tte): m_T(tte), m_Payoff(payoff) {}
-    double payoff(const Path &path) const {
-        return m_Payoff(path);
+    Option(function<const double (const Path&, const Bump&)> payoff, double tte): m_T(tte), m_Payoff(payoff) {}
+    double payoff(const Path &path, const Bump &bump) const {
+        return m_Payoff(path,bump);
     }
     double getT() const { return m_T; }
-    function<const double(const Path&)> getPayoffFunction() const { return m_Payoff; }
+    function<const double(const Path&, const Bump&)> getPayoffFunction() const { return m_Payoff; }
 };
 
 

@@ -389,7 +389,8 @@ int main() {
 	MCModel mcModel(vanillaCall, 100.0, sigma, r);
 	Simulator simulator(normal);
 	ModelResult mcModelResult = mcModel.simulate(simulator,10000,1);
-	cout << "Price: "<< mcModelResult.getPrice() << endl;
+//	cout << "Price: "<< mcModelResult.getPrice() << endl;
+	cout << mcModelResult;
 
 	//End-New
 
