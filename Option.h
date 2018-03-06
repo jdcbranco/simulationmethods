@@ -1,6 +1,3 @@
-//
-// Created by jdcbr on 3/4/2018.
-//
 
 #ifndef SIMULATIONMETHODS_OPTION_H
 #define SIMULATIONMETHODS_OPTION_H
@@ -12,9 +9,12 @@
 
 using namespace std;
 
-//This is necessary to to avoid circular reference, thus letting Option reference Path before Path is actually defined.
-//class Path;
-
+/*
+ * Base class to be used for single options.
+ * The Strike and the Payoff are option-specific parameters, so they are members.
+ * Interest rate and other parameters are model-specific, not option specific, thus those kind of
+ * parameters don't belong here.
+ * */
 class Option {
 protected:
     function<const double (const Path&)> m_Payoff;

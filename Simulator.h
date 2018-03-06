@@ -7,6 +7,9 @@
 
 using namespace std;
 
+/**
+ * The job of the Simulator is generate the simulated paths.
+ */
 class Simulator {
 protected:
     Random &m_Rng;

@@ -25,6 +25,8 @@ public:
         result.setDelta(delta);
         result.setGamma(gamma);
         result.setVega(vega);
+        //TODO - Complete this
+        result.setCalcTime(0.0);
         return result;
     }
     double calcPrice() const override;

@@ -1,6 +1,3 @@
-//
-// Created by jdcbr on 3/5/2018.
-//
 
 #ifndef SIMULATIONMETHODS_MODELPARAMS_H
 #define SIMULATIONMETHODS_MODELPARAMS_H

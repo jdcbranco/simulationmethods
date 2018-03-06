@@ -11,7 +11,8 @@ using namespace std;
 
 double MCModel::calcPrice() const {
     vector<double> payoffs;
-    transform(simulation_vector.begin(), simulation_vector.end(),payoffs.begin(), m_Option.getPayoffFunction());
+    //m_Option.getPayoffFunction()
+    transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs), [&](const Path &path) { return m_Option.payoff(path); });
     double sum = accumulate(payoffs.begin(), payoffs.end(), 0.0);
     double size = payoffs.size();
     return size>0 ? discount(sum / payoffs.size()) : NAN;

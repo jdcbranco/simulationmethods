@@ -15,8 +15,6 @@ vector<double> Normal::generate(unsigned int n) {
 //Implementation based on c++ random library, contributed by Ghali and Faycal
 vector<double> Normal::standard_generate(unsigned int n) {
     int j;
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::default_random_engine generator(seed);
     normal_distribution<double> distribution(m_Mean, m_Variance);
     vector<double> rand_numbers;
     for (j = 0; j < n; j = j + 1) {

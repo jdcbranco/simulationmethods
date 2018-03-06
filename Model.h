@@ -1,6 +1,3 @@
-//
-// Created by jdcbr on 3/4/2018.
-//
 
 #ifndef SIMULATIONMETHODS_MODEL_H
 #define SIMULATIONMETHODS_MODEL_H
@@ -11,10 +8,13 @@
 
 using namespace std;
 
-//Model assumptions for now are:
-// * Constant interest rate
-// * Constant volatility
-// * One underlying + risk free interest rate product
+
+/**
+ * Model assumptions for now are:
+ * Constant interest rate
+ * Constant volatility
+ * One underlying + risk free interest rate product
+ */
 class Model: public ModelParams {
 protected:
     Option m_Option;
@@ -25,7 +25,7 @@ public:
         return m_Option.getT();
     }
     double discount(double price) const {
-        return exp(-m_r*m_Option.getT());
+        return exp(-m_r*m_Option.getT())*price;
     }
     //Calculates the fair price and sensitivities for the option
     virtual double calcPrice() const = 0;
