@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <chrono>
 #include "Normal.h"
+#include "Vanilla.h"
+#include "MCModel.h"
 
 using namespace std;
 
@@ -381,6 +383,16 @@ int main() {
 	//int number_simulations = 100000;
 	double sigma = 0.4;
 	double r = 0.05;
+
+	//New (refactored code)
+	VanillaCall vanillaCall(strike, 1.0);
+	MCModel mcModel(vanillaCall, 100.0, sigma, r);
+	Simulator simulator(normal);
+	ModelResult mcModelResult = mcModel.simulate(simulator,10000,1);
+//	cout << "Price: "<< mcModelResult.getPrice() << endl;
+	cout << mcModelResult;
+
+	//End-New
 
 	Derivatives call(strike, 100, 1.0, sigma);
 
