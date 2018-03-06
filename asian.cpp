@@ -414,12 +414,13 @@ class asian_option_geometric{
         double t = 0;
         
         double G_t = S0;
-        double mu_bar = (r - sigma * sigma / 2) * pow(T - t, 2) / (2 * T);
-        double sigma_bar = sqrt(sigma*sigma / (T*T) * pow(T - t, 3) / 3);
+        double mu_bar = (r - sigma * sigma / 2) * T * ( 0.5 + 1.0/(2*N) );
+        double sigma_bar = sqrt(pow(sigma,2)*T * (1.0/3 - 1.0/(2*N) - 1.0/(6*N*N)) ) ;
         double d2 = 1.0 / sigma_bar * (t / T * log(G_t) + (T - t) / T * log(S0) + mu_bar - log(K));
         double d1 = d2 + sigma_bar;
         
         double delta_val = exp(mu_bar + pow(sigma_bar, 2) / 2)* normalCDF(d1) + exp(mu_bar + pow(sigma_bar, 2) / 2) / sigma_bar * normalPDF(d1) - K / (sigma_bar * S0) * normalPDF(d2);
+        delta_val = exp(-r*T)*delta_val;
         
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
@@ -531,13 +532,14 @@ class asian_option_geometric{
         double t = 0;
     
         double G_t = S0;
-        double mu_bar = (r - sigma * sigma / 2) * pow(T - t, 2) / (2 * T);
-        double sigma_bar = sqrt(sigma*sigma / (T*T) * pow(T - t, 3) / 3);
+        double mu_bar = (r - sigma * sigma / 2) * T * ( 0.5 + 1.0/(2*N) );
+        double sigma_bar = sqrt(pow(sigma,2)*T * (1.0/3 - 1.0/(2*N) - 1.0/(6*N*N)) ) ;
+        
         double d2 = 1.0 / sigma_bar * (t / T * log(G_t) + (T - t) / T * log(S0) + mu_bar - log(K));
         double d1 = d2 + sigma_bar;
         
-        double d_mu_bar = -sigma*T / 2;
-        double d_sigma_bar = sqrt(T/3);
+        double d_mu_bar = -sigma*T * ( 0.5 + 1.0/(2*N) );
+        double d_sigma_bar = sqrt(T*(1.0/3 - 1.0/(2*N) - 1.0/(6*N*N)));
         
         double d_d2 = ( d_mu_bar * sigma_bar - ( log(S0) + mu_bar - log(K) ) * d_sigma_bar ) / pow( sigma_bar, 2);
         double d_d1 = d_d2 + d_sigma_bar;
@@ -545,6 +547,7 @@ class asian_option_geometric{
         double vega_val =  S0 * exp( mu_bar + pow(sigma_bar,2) / 2 ) * ( d_mu_bar + sigma_bar * d_sigma_bar ) * normalCDF( d1 )
                             + S0 * exp( mu_bar + pow(sigma_bar,2) / 2 ) * normalPDF( d1 ) * d_d1
                             - K * normalPDF( d2 ) * d_d2;
+        vega_val = exp(-r*T) * vega_val;
         
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
@@ -666,8 +669,8 @@ class asian_option_geometric{
         double t = 0;
         
         double G_t = S0;
-        double mu_bar = (r - sigma * sigma / 2) * pow(T - t, 2) / (2 * T);
-        double sigma_bar = sqrt(sigma*sigma / (T*T) * pow(T - t, 3) / 3);
+        double mu_bar = (r - sigma * sigma / 2) * T * ( 0.5 + 1.0/(2*N) );
+        double sigma_bar = sqrt(pow(sigma,2)*T * (1.0/3 - 1.0/(2*N) - 1.0/(6*N*N)) ) ;
         double d2 = 1.0 / sigma_bar * (t / T * log(G_t) + (T - t) / T * log(S0) + mu_bar - log(K));
         double d1 = d2 + sigma_bar;
         
@@ -676,6 +679,7 @@ class asian_option_geometric{
         double res_val =    exp( mu_bar + pow( sigma_bar,2 ) ) * normalPDF( d1 ) * d_d
                             + exp( mu_bar + pow(sigma_bar,2)) / sigma_bar  * ( -d1 ) * normalPDF(d1) * d_d
                             - ( -d2 * d_d * K * normalPDF(d2) * sigma_bar * S0 - K * normalPDF(d2) * sigma_bar ) / pow( sigma_bar * S0, 2);
+        res_val = res_val * exp(-r*T);
         
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
@@ -1076,15 +1080,13 @@ int main() {
     // cin >> no_sims;
     
     
-	srand(time(NULL));
+    srand(time(NULL));
 	asian_option_geometric opt(type,T,N,K);
     
-    /*
-     
     opt.calculate_price("analytic",s0,r,v,no_sims);
     opt.calculate_price("euler",s0,r,v,no_sims);
     opt.calculate_price("milstein",s0,r,v,no_sims);
-    
+     
     opt.calculate_delta("analytic","analytic",s0,r,v,no_sims, h);
     opt.calculate_delta("euler","fd",s0,r,v,no_sims, h);
     opt.calculate_delta("milstein","fd",s0,r,v,no_sims, h);
@@ -1097,8 +1099,10 @@ int main() {
     opt.calculate_vega("euler","fd",s0,r,v,no_sims, h);
     opt.calculate_vega("milstein","fd",s0,r,v,no_sims, h);
     
-    */
     
+    
+    
+    /*
     int start = 10, finish = no_sims, num_of_increments = 10;
     vector<double> no_sims_list = linspace(start,finish,num_of_increments); // gives a series of integers from start to finish, with num_of_increments equal sized steps
     
@@ -1106,7 +1110,9 @@ int main() {
     delta_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
     gamma_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
     vega_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
-    
+    */
+     
+     
     cout << "DONE" << endl;
 	int dummy;
 	cin >> dummy;
