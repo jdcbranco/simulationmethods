@@ -6,12 +6,19 @@
 
 using namespace std;
 
-double MCModel::calcPrice() const {
+pair<double,double> MCModel::calcPrice() const {
     vector<double> payoffs;
     transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs), [&](const Path &path) { return m_Option.payoff(path,None); });
-    double sum = accumulate(payoffs.begin(), payoffs.end(), 0.0);
+    double sum = 0.0, sum_of_squares = 0.0;
+    for(auto i = payoffs.begin(); i!=payoffs.end(); i++) {
+        double discounted = discount(*i);
+        sum += discounted;
+        sum_of_squares += discounted * discounted;
+    }
     double size = payoffs.size();
-    return size>0 ? discount(sum / size) : NAN;
+    double estimate = size>0 ? sum / size: NAN;
+    double variance = ((sum_of_squares/size) - estimate*estimate)/size;
+    return pair<double,double>(estimate, variance);
 }
 
 double MCModel::calcDelta() const {
@@ -22,7 +29,7 @@ double MCModel::calcDelta() const {
     double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
     double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
     double size = payoffs_bump_up.size();
-    return size>0 ? discount((sum_up-sum_down) / size)/ (2*m_h*m_S0) : NAN; //TODO Divide before discounting or after?
+    return size>0 ? discount((sum_up-sum_down) / size)/ (2*m_h*m_S0) : NAN;
 }
 
 double MCModel::calcGamma() const {

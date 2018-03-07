@@ -22,19 +22,20 @@ public:
         clock_t start = clock();
         this->simulation_vector.clear();
         this->simulation_vector = simulator.simulate(*this, simulations, path_size);
-        double price = this->calcPrice();
+        auto price_and_variance = this->calcPrice();
         double delta = this->calcDelta();
         double gamma = this->calcGamma();
         double vega  = this->calcVega();
         ModelResult result;
-        result.setPrice(price);
+        result.setPrice(price_and_variance.first);
+        result.setPriceVariance(price_and_variance.second);
         result.setDelta(delta);
         result.setGamma(gamma);
         result.setVega(vega);
         result.setCalcTime((std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
         return result;
     }
-    double calcPrice() const override;
+    pair<double,double> calcPrice() const override;
     double calcDelta() const override;
     double calcGamma() const override;
     double calcVega() const override;

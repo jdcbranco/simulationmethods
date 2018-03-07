@@ -12,7 +12,7 @@ class ModelResult {
     friend class MCModel;
     friend class BSModel;
     friend ostream& operator<<(ostream& os, const ModelResult &modelResult) {
-        os << "Price: " << (modelResult.getPrice()) << endl;
+        os << "Price: " << (modelResult.getPrice()) << " / Variance: " << (modelResult.getPriceVariance()) << endl;
         os << "Delta: " << (modelResult.getDelta()) << endl;
         os << "Gamma: " << (modelResult.getGamma()) << endl;
         os << "Vega: "  << (modelResult.getVega()) << endl;
@@ -23,10 +23,14 @@ class ModelResult {
     double delta;
     double gamma;
     double vega;
+    double price_variance;
     double calcTime;
 protected:
     void setPrice(double price) {
         this->price = price;
+    }
+    void setPriceVariance(double priceVariance) {
+        this->price_variance = priceVariance;
     }
     void setDelta(double delta) {
         this->delta = delta;
@@ -46,6 +50,7 @@ public:
     double getDelta() const { return this->delta; }
     double getGamma() const { return this->gamma; }
     double getVega() const { return this->vega; }
+    double getPriceVariance() const { return this->price_variance; }
     double getCalcTime() const { return this->calcTime; }
 
 };

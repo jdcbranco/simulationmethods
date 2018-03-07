@@ -20,12 +20,13 @@ public:
     BSModel(VanillaOption &option, double S0, double sigma, double r): Model(option,S0,sigma,r), m_K(option.getStrike()) {}
     ModelResult calculate() {
         clock_t start = clock();
-        double price = this->calcPrice();
+        auto price_and_variance = this->calcPrice();
         double delta = this->calcDelta();
         double gamma = this->calcGamma();
         double vega  = this->calcVega();
         ModelResult result;
-        result.setPrice(price);
+        result.setPrice(price_and_variance.first);
+        result.setPriceVariance(price_and_variance.second);
         result.setDelta(delta);
         result.setGamma(gamma);
         result.setVega(vega);
@@ -41,11 +42,11 @@ public:
 class BSCallModel: public BSModel {
 public:
     BSCallModel(VanillaCall &call, double S0, double sigma, double r): BSModel(call,S0,sigma,r) {}
-    double calcPrice() const override {
+    pair<double,double> calcPrice() const override {
         double T = m_Option.getT();
         double d1 = (log(m_S0 / m_K) + (m_r + m_Sigma*m_Sigma / 2)*T) / (m_Sigma*sqrt(T));
         double d2 = d1 - m_Sigma * sqrt(m_Option.getT());
-        return (m_S0*normalCDF(d1) - normalCDF(d2)*m_K*exp(-m_r*T));
+        return pair<double,double>(m_S0*normalCDF(d1) - normalCDF(d2)*m_K*exp(-m_r*T),0.0);
     };
     double calcDelta() const override {
         double T = m_Option.getT();

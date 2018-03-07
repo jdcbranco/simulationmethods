@@ -13,7 +13,7 @@ using namespace std;
  * Model assumptions for now are:
  * Constant interest rate
  * Constant volatility
- * One underlying + risk free interest rate product
+ * One underlying + One risk free interest rate product
  */
 class Model: public ModelParams {
 protected:
@@ -27,8 +27,12 @@ public:
     double discount(double price) const {
         return exp(-m_r*m_Option.getT())*price;
     }
-    //Calculates the fair price and sensitivities for the option
-    virtual double calcPrice() const = 0;
+
+    /**
+     * Calculates price and variance of the price estimate
+     * @return pair where first is the price, second is the variance
+     */
+    virtual pair<double,double> calcPrice() const = 0;
     virtual double calcDelta() const = 0;
     virtual double calcGamma() const = 0;
     virtual double calcVega() const = 0;
