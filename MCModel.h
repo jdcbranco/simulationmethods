@@ -14,7 +14,7 @@ class MCModel: public Model {
 protected:
     vector<Path> simulation_vector;
 public:
-    MCModel(Option option, double S0, double sigma, double r, double h = 0.01, SDESolver sdeSolver = Explicit): Model(option, S0, sigma, r) {
+    MCModel(Option &option, double S0, double sigma, double r, double h = 0.01, SDESolver sdeSolver = Explicit): Model(option, S0, sigma, r) {
         this->m_h = h;
         this->m_Solver = sdeSolver;
     }
