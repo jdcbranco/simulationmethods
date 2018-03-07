@@ -300,7 +300,7 @@ class american_moving_average_asian {
     vector<double> b;
     
     
-    vector<vector<double> > compute_S( double S0, double r, double v ) {
+    vector<vector<double> > compute_S( string method, double S0, double r, double v ) {
         
         vector<vector<double> > S;
         vector<double> path;
@@ -308,27 +308,47 @@ class american_moving_average_asian {
         double dt = (double)T / N;
         double dt_sqr = pow((double)T / N, 0.5); // ADDED: Casting T to double
         
-        for( unsigned int i = 0; i < Z.size(); i++ ) {
-            // initialize the ith path
-            path.clear();
-            
-            // initialize price at time 0 = S0;
-            path.push_back( S0 );
-            
-            // calculate the rest of the path;
-            for (unsigned int j = 0; j < Z[0].size(); j++ ) {
-                path.push_back( path[i] + r * path[i]*dt + v * path[i]*dt_sqr*Z[i][j] ); // + 0.5 * v * ( v * path[i] ) * dt * ( pow(Z[i][j],2) - 1 ) );
+        if( icompare(method, "euler") ) {
+            for( unsigned int i = 0; i < Z.size(); i++ ) {
+                // initialize the ith path
+                path.clear();
+                
+                // initialize price at time 0 = S0;
+                path.push_back( S0 );
+                
+                // calculate the rest of the path;
+                for (unsigned int j = 0; j < Z[0].size(); j++ ) {
+                    path.push_back( path[i] + r * path[i]*dt + v * path[i]*dt_sqr*Z[i][j] ); // + 0.5 * v * ( v * path[i] ) * dt * ( pow(Z[i][j],2) - 1 ) );
+                }
+                
+                S.push_back( path );
             }
-            
-            S.push_back( path );
+        } else if ( icompare(method, "milstein") ) {
+            for( unsigned int i = 0; i < Z.size(); i++ ) {
+                // initialize the ith path
+                path.clear();
+                
+                // initialize price at time 0 = S0;
+                path.push_back( S0 );
+                
+                // calculate the rest of the path;
+                for (unsigned int j = 0; j < Z[0].size(); j++ ) {
+                    path.push_back( path[i] + r * path[i]*dt + v * path[i]*dt_sqr*Z[i][j] + 0.5 * v * ( v * path[i] ) * dt * ( pow(Z[i][j],2) - 1 ) ) ;
+                }
+                
+                S.push_back( path );
+            }
+        } else {
+            cout << "WARNING: unclear method of " << method << endl;
         }
+        
         return S;
     }
     
-    void compute_A( double S0, double r, double v ) {
+    void compute_A( string method,  double S0, double r, double v ) {
         A.clear();
         
-        vector<vector<double> > S = compute_S( S0, r, v );
+        vector<vector<double> > S = compute_S( method, S0, r, v );
         vector<double> path;
         double log_sum;
         
@@ -374,6 +394,7 @@ class american_moving_average_asian {
         // implement the V as definined in American put option lecturue notes
         
         double multiplier = 1;
+        double dt = (double) T/N;
         
         // cout << "FIRST STEP = " << t_id << endl;
         
@@ -382,7 +403,7 @@ class american_moving_average_asian {
             // 2nd condition:   if A[m_id][t_id] > b[t_id], means not exercise ad this time step
             //                  then increase one time step, and also mulitiple a discount
             t_id += 1;
-            multiplier = multiplier * exp(-r*T);
+            multiplier = multiplier * exp(-r*dt);
         }
         
         if( t_id == N ) {
@@ -401,6 +422,7 @@ class american_moving_average_asian {
         // mostly a copy of function V, but output more stats;
         
         double multiplier = 1;
+        double dt = (double) T/N;
         
         int FIRST = t_id;
         // cout << "FIRST STEP = " << t_id << endl;
@@ -410,7 +432,7 @@ class american_moving_average_asian {
             // 2nd condition:   if A[m_id][t_id] > b[t_id], means not exercise ad this time step
             //                  then increase one time step, and also mulitiple a discount
             t_id += 1;
-            multiplier = multiplier * exp(-r*T);
+            multiplier = multiplier * exp(-r*dt);
         }
         
         int LAST = t_id;
@@ -437,6 +459,7 @@ class american_moving_average_asian {
         b.resize( A[0].size() - 1 );
         vector<double> y, x;
         
+        double dt = (double) T/N;
         for(int t_id = (N-1); t_id >= (1); t_id--) {
             
             // clean up vectors x,y
@@ -444,7 +467,7 @@ class american_moving_average_asian {
             x.clear();
             
             for( unsigned int i = 0; i < A.size(); i++ ) {
-                y.push_back( V(i, t_id + 1, r) * exp(-r*T) );
+                y.push_back( V(i, t_id + 1, r) * exp(-r*dt) );
                 x.push_back( A[i][t_id] );
             }
             
@@ -453,20 +476,20 @@ class american_moving_average_asian {
     }
     
     
-    void MC_euler_pricing(double S0, double r, double v, unsigned int no_sims, vector<double>& res) {
+    void MC_pricing(string method, double S0, double r, double v, unsigned int no_sims, vector<double>& res) {
         // prameter initlisation
         clock_t c;
         c = clock();
         double duration;
+        double dt = (double) T/N;
         
         compute_Z( no_sims );
-        compute_A( S0, r, v); // if need to change parameter (i.e. finite difference greeks), can change at this step
+        compute_A( method, S0, r, v); // if need to change parameter (i.e. finite difference greeks), can change at this step
         
         compute_b(r);
         
         // the payoff of immediate exercies at time 0
         double V_E = ( K - S0 ) * ( K - S0 >= 0 );
-        
         cout << "b = ";
         print(b);
         
@@ -476,14 +499,13 @@ class american_moving_average_asian {
         for( unsigned int i = 0; i < no_sims; i++ ) {
             path_res = V_detailed(i, 1, r);
             sum += path_res[0];
-            
             if( path_res[2] < N ) {
                 cout << "Path " << i+1 << " early exercise at " << path_res[2] << endl;
             } else {
                 cout << "Path " << i+1 << " exercise at last step" << endl;
             }
         }
-        double V_C = exp(-r*T) * sum / no_sims;
+        double V_C = exp(-r*dt) * sum / no_sims;
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
         
@@ -512,16 +534,8 @@ public:
         // return containeer
         vector<double> res;
         
-        //Use selected method to calcuate c_0
-        if (icompare(method, "euler")) {
-            MC_euler_pricing(S0, r, v, no_sims, res);
-        } else if (icompare(method,"milstein")){
-            // MC_milstein_pricing(S0,r,v,no_sims, res);
-        } else if (icompare(method,"analytic")){
-            // analytic_solution_pricing(S0, r, v, res);
-        } else {
-            cout << "method " << method << " not recognized, please choose another" << endl;
-        }
+        //Use selected method to calcuate c_0 and put it in res;
+        MC_pricing( method, S0, r, v, no_sims, res );
         
         string name = "PRICE";
         if(display_flag) {
