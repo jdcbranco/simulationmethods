@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="american" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="simulationmethods" TARGET_NAME="american" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="simulationmethods" RUN_TARGET_NAME="european">
+  <configuration default="false" name="american" type="CMakeRunConfiguration" factoryName="Application" PASS_PARENT_ENVS_2="true" PROJECT_NAME="simulationmethods" TARGET_NAME="american" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="simulationmethods" RUN_TARGET_NAME="american">
     <envs />
     <method />
   </configuration>
