@@ -333,7 +333,7 @@ class american_moving_average_asian {
                 
                 // calculate the rest of the path;
                 for (unsigned int j = 0; j < Z[0].size(); j++ ) {
-                    path.push_back( path[i] + r * path[i]*dt + v * path[i]*dt_sqr*Z[i][j] + 0.5 * v * ( v * path[i] ) * dt * ( pow(Z[i][j],2) - 1 ) ) ;
+                    path.push_back( path[i] + r * path[i]*dt + v * path[i]*dt_sqr*Z[i][j]);
                 }
                 
                 S.push_back( path );
