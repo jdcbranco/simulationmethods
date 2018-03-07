@@ -130,7 +130,7 @@ class asian_option_geometric{
 
             for(unsigned int j=0;j<N;j++){
                 s_u += r*s_u*dt + v*s_u*dt_sqr*z[j];
-                s_d += r*s_u*dt + v*s_u*dt_sqr*-z[j];
+                s_d += r*s_u*dt + v*s_u*dt_sqr*-z[j];//TODO FIX this: the s_u is already updated by the above line
                 sum_u += log(s_u);
                 sum_d += log(s_d);
             }
@@ -220,6 +220,7 @@ class asian_option_geometric{
             double s = S0;
             
             for (unsigned int j = 0;j < N;j++) {
+                //TODO: Check this - the milstein scheme is v' * v, not v * v, and since we assume vol is constant, v' is 0.
                 s += r * s*dt + v * s*dt_sqr*z[j] + 0.5 * v * ( v * s ) * dt * ( z[j]*z[j] - 1 ) ;
                 log_sum += log(s);
             }
@@ -292,6 +293,7 @@ class asian_option_geometric{
                 double s1 = S0 + h, s2 = S0 - h;
                 
                 for (unsigned int j = 0;j < N;j++) {
+                    //TODO: Check this - the milstein scheme is v' * v, not v * v, and since we assume vol is constant, v' is 0.
                     s1 += r * s1*dt + v * s1*dt_sqr*z[j] + 0.5 * v * ( v * s1 ) * dt * ( z[j]*z[j] - 1 ) ;
                     s2 += r * s2*dt + v * s2*dt_sqr*z[j] + 0.5 * v * ( v * s2 ) * dt * ( z[j]*z[j] - 1 ) ;
                     log_sum1 += log(s1);
@@ -458,6 +460,7 @@ class asian_option_geometric{
                 double v1 = v + h, v2 = v - h;
                 
                 for (unsigned int j = 0;j < N;j++) {
+                    //TODO: Check this - the milstein scheme is v' * v, not v * v, and since we assume vol is constant, v' is 0.
                     s1 += r * s1*dt + v1 * s1*dt_sqr*z[j] + 0.5 * v1 * ( v1 * s1 ) * dt * ( z[j]*z[j] - 1 ) ;
                     s2 += r * s2*dt + v2 * s2*dt_sqr*z[j] + 0.5 * v2 * ( v2 * s2 ) * dt * ( z[j]*z[j] - 1 ) ;
                     log_sum1 += log(s1);
@@ -585,6 +588,7 @@ class asian_option_geometric{
                 double s1 = S0 + h, s2 = S0, s3 = S0 - h;
                 
                 for (unsigned int j = 0;j < N;j++) {
+                    //TODO: Check this - the milstein scheme is v' * v, not v * v, and since we assume vol is constant, v' is 0.
                     s1 += r * s1*dt + v * s1*dt_sqr*z[j] + 0.5 * v * ( v * s1 ) * dt * ( z[j]*z[j] - 1 ) ;
                     s2 += r * s2*dt + v * s2*dt_sqr*z[j] + 0.5 * v * ( v * s2 ) * dt * ( z[j]*z[j] - 1 ) ;
                     s3 += r * s3*dt + v * s3*dt_sqr*z[j] + 0.5 * v * ( v * s3 ) * dt * ( z[j]*z[j] - 1 ) ;

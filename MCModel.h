@@ -14,11 +14,13 @@ class MCModel: public Model {
 protected:
     vector<Path> simulation_vector;
 public:
-    MCModel(Option option, double S0, double sigma, double r, double h = 0.01): Model(option, S0, sigma, r) {
+    MCModel(Option option, double S0, double sigma, double r, double h = 0.01, SDESolver sdeSolver = Explicit): Model(option, S0, sigma, r) {
         this->m_h = h;
+        this->m_Solver = sdeSolver;
     }
     ModelResult simulate(Simulator simulator, int simulations, int path_size = 1) {
         clock_t start = clock();
+        this->simulation_vector.clear();
         this->simulation_vector = simulator.simulate(*this, simulations, path_size);
         double price = this->calcPrice();
         double delta = this->calcDelta();
