@@ -19,7 +19,12 @@ public:
     vector<Path> simulate(Model &model, int simulations, int path_size = 1) {
         vector<Path> sims;
         for (int i = 0; i < simulations; ++i) {
-            sims.push_back(Path(model, m_Rng.generate(path_size), m_Antithetic));
+            if(m_Antithetic) {
+                sims.push_back(Path(model, m_Rng.generate(path_size), true));
+                sims.push_back(Path(model, m_Rng.generate(path_size), false));
+            } else {
+                sims.push_back(Path(model, m_Rng.generate(path_size)));
+            }
         }
         return sims;
     }

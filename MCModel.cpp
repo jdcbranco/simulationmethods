@@ -1,6 +1,3 @@
-//
-// Created by jdcbr on 3/4/2018.
-//
 
 #include "MCModel.h"
 
@@ -25,7 +22,7 @@ double MCModel::calcDelta() const {
     double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
     double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
     double size = payoffs_bump_up.size();
-    return size>0 ? discount((sum_up-sum_down) / size)/ (2*m_h) : NAN; //TODO Divide before discounting or after?
+    return size>0 ? discount((sum_up-sum_down) / size)/ (2*m_h*m_S0) : NAN; //TODO Divide before discounting or after?
 }
 
 double MCModel::calcGamma() const {
@@ -39,7 +36,7 @@ double MCModel::calcGamma() const {
     double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
     double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
     double size = payoffs_bump_up.size();
-    return size>0 ? discount((sum_up+sum_down-2.0*sum) / size)/ (m_h*m_h) : NAN;
+    return size>0 ? discount((sum_up+sum_down-2.0*sum) / size)/ (m_h*m_h*m_S0*m_S0) : NAN;
 }
 
 double MCModel::calcVega() const {
@@ -50,5 +47,5 @@ double MCModel::calcVega() const {
     double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
     double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
     double size = payoffs_bump_up.size();
-    return size>0 ? discount((sum_up-sum_down) / size)/ (2*m_h) : NAN;
+    return size>0 ? discount((sum_up-sum_down) / size)/ (2*m_h*m_Sigma) : NAN;
 }

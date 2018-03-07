@@ -10,6 +10,7 @@ using namespace std;
 class ModelResult {
     friend class Model;
     friend class MCModel;
+    friend class BSModel;
     friend ostream& operator<<(ostream& os, const ModelResult &modelResult) {
         os << "Price: " << (modelResult.getPrice()) << endl;
         os << "Delta: " << (modelResult.getDelta()) << endl;
