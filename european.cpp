@@ -10,6 +10,7 @@
 #include "Vanilla.h"
 #include "MCModel.h"
 #include "BSVanilla.h"
+#include "Asian.h"
 
 using namespace std;
 
@@ -384,7 +385,7 @@ int main() {
 
 	vector<int> number_simulations = {1000,5000,10000,25000,50000,100000,200000,500000} ;
 
-    //New (refactored code)
+    //New code for European call
     VanillaCall vanillaCall(strike, 1.0);
     BSCallModel bsModel(vanillaCall, 100.0, sigma, r);
     MCModel mcModel(vanillaCall, 100.0, sigma, r, 0.005, Explicit);
@@ -399,7 +400,17 @@ int main() {
 		cout << "Simulations: " << i << endl;
 		cout << mcModelResult;
 	}
+    //New code for Asian call
+    print_sample_path = true;
+    GFixedStrikeAsianCall asianCall(strike, 1.0);
+    MCModel asianMcModel(asianCall, 100.0, sigma, r, 0.005, Explicit); //Optionally, can try Euler as well. Both work fine.
+    ModelResult asianMcModelResult = asianMcModel.simulate(simulator,100000, 100);
+    cout << "-------------" << endl;
+    cout << "Asian Call with 100k paths and 100 steps: " << endl;
+    cout << asianMcModelResult;
+
 	//End-New
+    return 0;
 
 	Derivatives call(strike, 100, 1.0, sigma);
 
