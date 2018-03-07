@@ -280,7 +280,7 @@ double solve_boundary( vector<double> &x, vector<double> &y, double K ) {
     if( pow(a[1]+1,2) -4*a[2]*(a[0]-K) >= 0 ) {
         return ( -(a[1]+1) + pow( pow(a[1]+1,2) -4*a[2]*(a[0]-K), 0.5) ) / ( 2 * a[2] );
     } else {
-        // if no intersection => V_C is always larger, so boundary is infinity;
+        // if no intersection => V_C is always larger, so boundary is 0;
         return 0;
     }
 }
@@ -371,18 +371,64 @@ class american_moving_average_asian {
     }
     
     double V( int m_id, int t_id, double &r ) {
+        // implement the V as definined in American put option lecturue notes
+        
+        double multiplier = 1;
+        
+        // cout << "FIRST STEP = " << t_id << endl;
+        
+        while( t_id < N && A[m_id][t_id] > b[t_id] ) {
+            // 1st condition:   if t_id < N mean it is not the last time step
+            // 2nd condition:   if A[m_id][t_id] > b[t_id], means not exercise ad this time step
+            //                  then increase one time step, and also mulitiple a discount
+            t_id += 1;
+            multiplier = multiplier * exp(-r*T);
+        }
+        
         if( t_id == N ) {
             // This is the last payoff in the path, there is no V_c to compare with
-            return ( K - A[m_id][t_id] ) * (  K - A[m_id][t_id] > 0 );
-        } else if ( t_id < N ) {
-            if( A[m_id][t_id] <= b[t_id] ) {
-                return K - A[m_id][t_id];
-            } else {
-                return exp(-r*T) * V( m_id, t_id + 1, r);
-            }
+            // cout << "   LAST STEP = " << t_id << endl;
+            return multiplier * ( K - A[m_id][t_id] ) * (  K - A[m_id][t_id] > 0 );
         } else {
-            cout << "ERROR @compute Z" << endl;
-            return -1;
+            
+            // cout << "   LAST STEP = " << t_id << endl;
+            return multiplier * ( K - A[m_id][t_id] );
+        }
+    }
+    
+    
+    vector<double> V_detailed( int m_id, int t_id, double &r ) {
+        // mostly a copy of function V, but output more stats;
+        
+        double multiplier = 1;
+        
+        int FIRST = t_id;
+        // cout << "FIRST STEP = " << t_id << endl;
+        
+        while( t_id < N && A[m_id][t_id] > b[t_id] ) {
+            // 1st condition:   if t_id < N mean it is not the last time step
+            // 2nd condition:   if A[m_id][t_id] > b[t_id], means not exercise ad this time step
+            //                  then increase one time step, and also mulitiple a discount
+            t_id += 1;
+            multiplier = multiplier * exp(-r*T);
+        }
+        
+        int LAST = t_id;
+        vector<double> res;
+        
+        if( t_id == N ) {
+            // This is the last payoff in the path, there is no V_c to compare with
+            // cout << "   LAST STEP = " << t_id << endl;
+            res.push_back( multiplier * ( K - A[m_id][t_id] ) * (  K - A[m_id][t_id] > 0 ) );
+            res.push_back( FIRST );
+            res.push_back( LAST );
+            return res;
+        } else {
+            // cout << "   LAST STEP = " << t_id << endl;
+            res.push_back( multiplier * ( K - A[m_id][t_id] ) ) ;
+            res.push_back( FIRST );
+            res.push_back( LAST );
+            return res;
         }
     }
     
@@ -421,17 +467,25 @@ class american_moving_average_asian {
         // the payoff of immediate exercies at time 0
         double V_E = ( K - S0 ) * ( K - S0 >= 0 );
         
+        cout << "b = ";
+        print(b);
+        
         // summing the payoff for holding the put option
         double sum = 0;
+        vector<double> path_res;
         for( unsigned int i = 0; i < no_sims; i++ ) {
-            sum += V(i, 1, r);
-            cout << V(i, 1, r) << endl;
+            path_res = V_detailed(i, 1, r);
+            sum += path_res[0];
+            
+            if( path_res[2] < N ) {
+                cout << "Path " << i+1 << " early exercise at " << path_res[2] << endl;
+            } else {
+                cout << "Path " << i+1 << " exercise at last step" << endl;
+            }
         }
         double V_C = exp(-r*T) * sum / no_sims;
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
-        
-        print(b);
         
         // return results
         res.push_back( max( V_E, V_C ) ); // price
@@ -503,7 +557,7 @@ int main() {
     double S0 = 100;
     double r = 0.05;
     double v = 0.4;
-    int no_sims = 1000;
+    int no_sims = 100;
     
     srand(time(NULL));
     american_moving_average_asian opt(type,T,N,K,W);
@@ -511,3 +565,4 @@ int main() {
     opt.calculate_price("euler", S0, r, v, no_sims, true);
     
 }
+;
