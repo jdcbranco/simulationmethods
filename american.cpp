@@ -10,6 +10,7 @@
 #include <fstream>
 #include <algorithm>
 #include <iterator>
+#include <limits>
 
 #include "Normal.h"
 
@@ -157,6 +158,7 @@ vector<vector<double> > inverse_3x3( vector<vector<double> > &m ) {
     
     if( det == 0 ) {
         cout << "WARNING: singular matrix" << endl;
+        print( m );
     }
     
     double invdet = 1 / det;
@@ -199,27 +201,74 @@ vector<vector<double> > X_from_vec( vector<double> &x ) {
     return X;
 }
 
-vector<vector<double> > xTx_inverse( vector<vector<double> > &X ) {
-    vector<vector<double> > res, XT;
+vector<vector<double> > xTx_inverse( vector<double> &x ) {
+    vector<vector<double> > res;
     
-    XT = transpose(X);
-    res = matrix_product( XT, X );
+    double M = x.size();
+    double sum_1 = 0, sum_2 = 0, sum_3 = 0, sum_4 = 0;
+    
+    for( unsigned int i = 0; i < M; i++ ) {
+        sum_1 += x[i];
+        sum_2 += pow(x[i],2);
+        sum_3 += pow(x[i],3);
+        sum_4 += pow(x[i],4);
+    }
+    
+    vector<double> row;
+    row.push_back(M);
+    row.push_back(sum_1);
+    row.push_back(sum_2);
+    res.push_back(row);
+    
+    row.clear();
+    row.push_back(sum_1);
+    row.push_back(sum_2);
+    row.push_back(sum_3);
+    res.push_back(row);
+    
+    row.clear();
+    row.push_back(sum_2);
+    row.push_back(sum_3);
+    row.push_back(sum_4);
+    res.push_back(row);
+    
     res = inverse_3x3(res);
     return res;
     
 }
 
+vector<vector<double> > xTy ( vector<double> &x, vector<double> &y ) {
+    vector<vector<double> > res;
+    vector<double> row;
+    double sum_1 = 0, sum_2 = 0, sum_3 = 0;
+    
+    for( unsigned int i = 0; i < x.size(); i++ ) {
+        sum_1 += y[i];
+        sum_2 += x[i] * y[i];
+        sum_3 += pow( x[i], 2 ) * y[i];
+    }
+    
+    row.push_back( sum_1 );
+    res.push_back(row);
+    
+    row.clear();
+    row.push_back( sum_2 );
+    res.push_back(row);
+    
+    row.clear();
+    row.push_back( sum_3 );
+    res.push_back(row);
+    
+    return res;
+}
+
 vector<double> a_estimate( vector<double> &x, vector<double> &y ) {
-    vector<vector<double> > XTX, X, XT, res, Y;
+    vector<vector<double> > XTX, res, XTY;
     
-    X = X_from_vec( x );
-    XT = transpose(X);
-    XTX = xTx_inverse( X );
-    Y.push_back(y);
-    Y = transpose(Y);
+    XTX = xTx_inverse( x );
+    XTY = xTy(x,y);
     
-    res = matrix_product(XTX,XT);
-    res = matrix_product(res,Y);
+    res = matrix_product(XTX,XTY);
     res = transpose(res);
     
     return res[0];
@@ -227,7 +276,13 @@ vector<double> a_estimate( vector<double> &x, vector<double> &y ) {
 
 double solve_boundary( vector<double> &x, vector<double> &y, double K ) {
     vector<double> a = a_estimate(x,y);
-    return ( -(a[1]+1) + pow( pow(a[1]+1,2) -4*a[2]*(a[0]-K), 0.5) ) / ( 2 * a[2] );
+    
+    if( pow(a[1]+1,2) -4*a[2]*(a[0]-K) >= 0 ) {
+        return ( -(a[1]+1) + pow( pow(a[1]+1,2) -4*a[2]*(a[0]-K), 0.5) ) / ( 2 * a[2] );
+    } else {
+        // if no intersection => V_C is always larger, so boundary is infinity;
+        return 0;
+    }
 }
 
 //Normal random number generator
@@ -370,10 +425,13 @@ class american_moving_average_asian {
         double sum = 0;
         for( unsigned int i = 0; i < no_sims; i++ ) {
             sum += V(i, 1, r);
+            cout << V(i, 1, r) << endl;
         }
         double V_C = exp(-r*T) * sum / no_sims;
         // record time
         duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+        
+        print(b);
         
         // return results
         res.push_back( max( V_E, V_C ) ); // price
@@ -439,13 +497,13 @@ int main() {
     vector<double> a_vec, s_vec, x_vec, y_vec;
     string type = "call";
     int T = 1;
-    unsigned int N = 5;
+    unsigned int N = 100;
     double K = 100;
     double W = 2;
     double S0 = 100;
     double r = 0.05;
     double v = 0.4;
-    int no_sims = 5;
+    int no_sims = 1000;
     
     srand(time(NULL));
     american_moving_average_asian opt(type,T,N,K,W);
