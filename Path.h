@@ -11,8 +11,19 @@ using namespace std;
 static bool print_sample_path = false;
 enum Bump { None, Price_Up, Price_Down, Sigma_Up, Sigma_Down };
 
+/**
+ * Stores the price paths and any pertubation to them required for finite difference methods.
+ * By pertubing the path using the same random numbers, we save computation time.
+ * We can argue that this means more memory needs, but we can perform otpimizations that
+ * discard and free the path once all calculations to them have been done, so we could in theory
+ * process the Paths in batches, either serially or in parallel.
+ * Note that this code is highly couple to the Model code - assumes constant interest rate and volatility.
+ * If we want to make it totally flexible, we must inject here the drift and diffusion equation formulas,
+ * and explicit solution formulas, if they exist.
+ */
 class Path {
 private:
+    //TODO It doesn't feel right to let this function be here. May move it to some utils class
     double geometric_average(vector<double> input) const {
         vector<double> logPrices;
         double acc = 0.0;
@@ -22,6 +33,7 @@ private:
         return exp(acc / input.size());
     }
 protected:
+    double m_S0;
     vector<double> m_Prices; //non discounted price path
     vector<double> m_Prices_bump_S_up;
     vector<double> m_Prices_bump_S_down;
@@ -29,7 +41,7 @@ protected:
     vector<double> m_Prices_bump_sigma_down;
     vector<double> &m_RandomNumbers;
 public:
-    Path(ModelParams &model, vector<double> &&random_numbers, bool antithetic = false): m_RandomNumbers(random_numbers) {
+    Path(ModelParams &model, vector<double> &&random_numbers, bool antithetic = false): m_RandomNumbers(random_numbers), m_S0(model.getS0()) {
         double S0 = model.getS0();
         double T = model.getT();
         double r = model.getR();
@@ -53,8 +65,6 @@ public:
         double factor_explicit = 0.0, factor_explicit_sigma_up = 0.0, factor_explicit_sigma_down = 0.0;
         for(int i = 1; i <= random_numbers.size(); i++) {
             auto rn = epsilon * random_numbers[i-1];
-            double t = i==random_numbers.size() ? T : dt*i;
-            double t_sqrt = sqrt(t);
             switch(model.getSolver()) {
                 case Explicit:
                 {
@@ -92,16 +102,6 @@ public:
                 }
             }
         }
-        if(print_sample_path) {
-            cout << "-------------" << endl;
-            cout << "Sample path: " << endl;
-            cout << S0 << ", ";
-            for (int i = 0; i < m_Prices.size(); ++i) {
-                cout << m_Prices[i] << ", " ;
-            }
-            cout << endl;
-            print_sample_path=false;
-        }
     }
     double back(Bump bump) const {
         switch (bump) {
@@ -131,6 +131,16 @@ public:
                 return geometric_average(m_Prices_bump_sigma_down);
         }
     }
+    friend ostream& operator<<(ostream& os, const Path &path) {
+        cout << "-------------" << endl;
+        cout << "Sample path: " << endl;
+        cout << path.m_S0 << ", ";
+        for (int i = 0; i < path.m_Prices.size(); ++i) {
+            cout << path.m_Prices[i] << ", " ;
+        }
+        cout << endl;
+        return os;
+    };
 };
 
 #endif //SIMULATIONMETHODS_PATH_H
