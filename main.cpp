@@ -28,7 +28,7 @@ int main() {
     cout << "Black Scholes: " << endl;
     cout << bsModelResult;
     for(int i: number_simulations) {
-        ModelResult mcModelResult = mcModel.simulate(simulator,i,mcModel.getSolver() == Explicit ? 1 : 5, /*Pathwise*/ true);
+        ModelResult mcModelResult = mcModel.simulate(simulator,i,mcModel.getSolver() == Explicit ? 1 : 5, LikelihoodRatio);
         cout << "-------------" << endl;
         cout << "Simulations: " << i << endl;
         cout << mcModelResult;
@@ -36,7 +36,7 @@ int main() {
     //Asian call
     GFixedStrikeAsianCall asianCall(strike, 1.0);
     MCModel asianMcModel(asianCall, s0, sigma, r, 0.005, Explicit); //Optionally, can try Euler as well. Both work fine.
-    ModelResult asianMcModelResult = asianMcModel.simulate(simulator,100000, 10, /*Pathwise*/ true);
+    ModelResult asianMcModelResult = asianMcModel.simulate(simulator,100000, 10, PathwiseDifferentiation);
     cout << "-------------" << endl;
     cout << "Asian Call with 100k paths and 10 steps: " << endl;
     cout << asianMcModelResult;

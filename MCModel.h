@@ -10,12 +10,14 @@
 
 using namespace std;
 
+enum SensitivityMethod { FiniteDifference, PathwiseDifferentiation, LikelihoodRatio};
+
 class MCModel: public Model {
 protected:
     vector<Path> simulation_vector;
     function<const double (const Path&)> control_variate;
     double control_variate_mean = 0.0;
-    bool m_PathwiseDifferentiation = false;
+    SensitivityMethod m_SensitivityMethod = FiniteDifference;
 public:
     MCModel(Option &option, double S0, double sigma, double r, double h = 0.01, SDESolver sdeSolver = Explicit): Model(option, S0, sigma, r) {
         this->m_h = h;
@@ -27,11 +29,11 @@ public:
         this->control_variate_mean = control_variate_mean;
     }
 
-    ModelResult simulate(Simulator simulator, int simulations, int path_size = 1, bool pathwise = false) {
+    ModelResult simulate(Simulator simulator, int simulations, int path_size = 1, SensitivityMethod sensitivityMethod = FiniteDifference) {
         clock_t start = clock();
         this->simulation_vector.clear();
         this->simulation_vector = simulator.simulate(*this, simulations, path_size);
-        this->m_PathwiseDifferentiation = pathwise;
+        this->m_SensitivityMethod = sensitivityMethod;
         auto price_and_variance = this->calcPrice();
         double delta = this->calcDelta();
         double gamma = this->calcGamma();

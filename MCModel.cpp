@@ -45,77 +45,104 @@ pair<double,double> MCModel::calcPrice() const {
 }
 
 double MCModel::calcDelta() const {
-    if(m_PathwiseDifferentiation) {
-        vector<double> pathwise_deltas;
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(pathwise_deltas),
-                  [&](const Path &path) {
-                      return m_Option.pathwise_delta(path,*this);
-                  });
-        double sum = accumulate(pathwise_deltas.begin(), pathwise_deltas.end(), 0.0);
-        double size = pathwise_deltas.size();
-        return size > 0 ? sum / size : NAN;
-    } else { //Finite Difference method
-        vector<double> payoffs_bump_up;
-        vector<double> payoffs_bump_down;
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_up),
-                  [&](const Path &path) { return m_Option.payoff(path, Price_Up); });
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_down),
-                  [&](const Path &path) { return m_Option.payoff(path, Price_Down); });
-        double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
-        double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
-        double size = payoffs_bump_up.size();
-        return size > 0 ? discount((sum_up - sum_down) / size) / (2 * m_h * m_S0) : NAN;
+    switch (m_SensitivityMethod) {
+        case FiniteDifference: {
+            vector<double> payoffs_bump_up;
+            vector<double> payoffs_bump_down;
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_up),
+                      [&](const Path &path) { return m_Option.payoff(path, Price_Up); });
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_down),
+                      [&](const Path &path) { return m_Option.payoff(path, Price_Down); });
+            double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
+            double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
+            double size = payoffs_bump_up.size();
+            return size > 0 ? discount((sum_up - sum_down) / size) / (2 * m_h * m_S0) : NAN;
+        }
+        case PathwiseDifferentiation: {
+            vector<double> pathwise_deltas;
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(pathwise_deltas),
+                      [&](const Path &path) {
+                          return m_Option.pathwise_delta(path,*this);
+                      });
+            double sum = accumulate(pathwise_deltas.begin(), pathwise_deltas.end(), 0.0);
+            double size = pathwise_deltas.size();
+            return size > 0 ? sum / size : NAN;
+        }
+        case LikelihoodRatio: {
+            vector<double> payoffs;
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs),
+                      [&](const Path &path) {
+                          double S_T = path.back(None);
+                          return discount(m_Option.payoff(path, None)) * (log(S_T/m_S0) + (m_r - 0.5*m_Sigma*m_Sigma)*m_Option.getT()) / (m_S0*m_Sigma*m_Sigma*m_Option.getT());
+                      });
+            double sum = accumulate(payoffs.begin(), payoffs.end(), 0.0);
+            double size = payoffs.size();
+            return size > 0? sum / size : NAN;
+        }
     }
 }
 
 double MCModel::calcGamma() const {
-    if(m_PathwiseDifferentiation) {
-        vector<double> pathwise_gamma;
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(pathwise_gamma),
-                  [&](const Path &path) {
-                      return m_Option.pathwise_gamma(path,*this);
-                  });
-        double sum = accumulate(pathwise_gamma.begin(), pathwise_gamma.end(), 0.0);
-        double size = pathwise_gamma.size();
-        return size > 0 ? sum / size : NAN;
-    } else {
-        vector<double> payoffs;
-        vector<double> payoffs_bump_up;
-        vector<double> payoffs_bump_down;
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs),
-                  [&](const Path &path) { return m_Option.payoff(path, None); });
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_up),
-                  [&](const Path &path) { return m_Option.payoff(path, Price_Up); });
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_down),
-                  [&](const Path &path) { return m_Option.payoff(path, Price_Down); });
-        double sum = accumulate(payoffs.begin(), payoffs.end(), 0.0);
-        double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
-        double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
-        double size = payoffs_bump_up.size();
-        return size > 0 ? discount((sum_up + sum_down - 2.0 * sum) / size) / (m_h * m_h * m_S0 * m_S0) : NAN;
+    switch(m_SensitivityMethod) {
+        case FiniteDifference: {
+            vector<double> payoffs;
+            vector<double> payoffs_bump_up;
+            vector<double> payoffs_bump_down;
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs),
+                      [&](const Path &path) { return m_Option.payoff(path, None); });
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_up),
+                      [&](const Path &path) { return m_Option.payoff(path, Price_Up); });
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_down),
+                      [&](const Path &path) { return m_Option.payoff(path, Price_Down); });
+            double sum = accumulate(payoffs.begin(), payoffs.end(), 0.0);
+            double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
+            double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
+            double size = payoffs_bump_up.size();
+            return size > 0 ? discount((sum_up + sum_down - 2.0 * sum) / size) / (m_h * m_h * m_S0 * m_S0) : NAN;
+        }
+        case PathwiseDifferentiation: {
+            vector<double> pathwise_gamma;
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(pathwise_gamma),
+                      [&](const Path &path) {
+                          return m_Option.pathwise_gamma(path,*this);
+                      });
+            double sum = accumulate(pathwise_gamma.begin(), pathwise_gamma.end(), 0.0);
+            double size = pathwise_gamma.size();
+            return size > 0 ? sum / size : NAN;
+        }
+        case LikelihoodRatio: {
+            return NAN;
+        }
+
     }
 }
 
 double MCModel::calcVega() const {
-    if(m_PathwiseDifferentiation) {
-        vector<double> pathwise_vega;
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(pathwise_vega),
-                  [&](const Path &path) {
-                      return m_Option.pathwise_vega(path,*this);
-                  });
-        double sum = accumulate(pathwise_vega.begin(), pathwise_vega.end(), 0.0);
-        double size = pathwise_vega.size();
-        return size > 0 ? sum / size : NAN;
-    } else {
-        vector<double> payoffs_bump_up;
-        vector<double> payoffs_bump_down;
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_up),
-                  [&](const Path &path) { return m_Option.payoff(path, Sigma_Up); });
-        transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_down),
-                  [&](const Path &path) { return m_Option.payoff(path, Sigma_Down); });
-        double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
-        double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
-        double size = payoffs_bump_up.size();
-        return size > 0 ? discount((sum_up - sum_down) / size) / (2 * m_h * m_Sigma) : NAN;
+    switch (m_SensitivityMethod) {
+        case FiniteDifference: {
+            vector<double> payoffs_bump_up;
+            vector<double> payoffs_bump_down;
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_up),
+                      [&](const Path &path) { return m_Option.payoff(path, Sigma_Up); });
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_down),
+                      [&](const Path &path) { return m_Option.payoff(path, Sigma_Down); });
+            double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
+            double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
+            double size = payoffs_bump_up.size();
+            return size > 0 ? discount((sum_up - sum_down) / size) / (2 * m_h * m_Sigma) : NAN;
+        }
+        case PathwiseDifferentiation: {
+            vector<double> pathwise_vega;
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(pathwise_vega),
+                      [&](const Path &path) {
+                          return m_Option.pathwise_vega(path,*this);
+                      });
+            double sum = accumulate(pathwise_vega.begin(), pathwise_vega.end(), 0.0);
+            double size = pathwise_vega.size();
+            return size > 0 ? sum / size : NAN;
+        }
+        case LikelihoodRatio: {
+            return NAN;
+        }
     }
 }
