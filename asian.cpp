@@ -111,46 +111,137 @@ class asian_option_geometric{
         return 0;
     }
     
-    void MC_euler_pricing(double S0, double r,double v,unsigned int no_sims,vector<double>& res){
-        // prameter initlisation
+    void AA_euler_pricing(double S0, double r, double v, unsigned int no_sim, vector<double> &res ) {
+        // parameter init
         clock_t c;
         double duration;
-        double price = 0;
         double dt = (double)T/N;
-        double dt_sqr = pow((double)T/N,0.5); // ADDED: Casting T to double
-        double mean_sqr = 0;
-
-        // run the simulation and use antithetic variance reduction
-        for(unsigned int i = 0;i < no_sims;i++) {
-            vector<double> z = normal.generate(N); //generate normal vector of size N
-            double sum_u = 0;
-            double sum_d = 0;
-            double s_u = S0;
-            double s_d = S0;
-
-            for(unsigned int j=0;j<N;j++){
-                s_u += r*s_u*dt + v*s_u*dt_sqr*z[j];
-                s_d += r*s_u*dt + v*s_u*dt_sqr*-z[j];//TODO FIX this: the s_u is already updated by the above line
-                sum_u += log(s_u);
-                sum_d += log(s_d);
+        double dt_sqrt = pow( (double)T/N, 0.5);
+        double sum_path = 0;
+        double sum_price = 0;
+        double s = 0;
+        double discount = exp(-r*T);
+        
+        c = clock();
+        for(unsigned int i = 0; i < no_sims; i++) {
+            vector<double> z = normal.generate(N) // generate N normal samples
+            
+            for( unsigned int j = 0; j < N; j++ ) {
+                s += r * s*dt + v * s*dt_sqrt*z[j];
+                sum_path += s;
             }
-            // update price
-            price += pay_off(exp(sum_u/(N+1)));
-            price += pay_off(exp(sum_d/(N + 1)));
-            mean_sqr += pow(pay_off(exp(sum_u / N)), 2);
-            mean_sqr += pow(pay_off(exp(sum_d/ N)), 2);
-
+            sum_price += pay_off( sum_path / N );
+            
+            // reset variables after loop
+            sum_path = 0;
+            s = S0;
+        }
+        duration = ( clock() - c ) / (double)CLOCKS_PER_SEC;
+        
+        res.push_back( discount * sum_price / no_sims );
+        res.push_back( duration );
+    }
+    
+    void AA_euler_delta(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
+        clock_t c;
+        double duration;
+        double dt = (double)T / N;
+        double dt_sqrt = pow((double)T / N, 0.5); // ADDED: Casting T to double
+        double discount = exp(-r * T);
+        double sum_path_1 = 0;
+        double sum_path_2 = 0;
+        double sum_greek = 0;
+        
+        double this_price_1 = 0;
+        double this_price_2 = 0;
+        
+        double s1 = S0;
+        double s2 = S0;
+        double v1 = v + h;
+        double v2 = v - h;
+        
+        double discount = exp(-r*T);
+        
+        c = clock();// start the timer
+        
+        for (unsigned int i = 0; i < no_sims; i++) {
+            vector<double> z = normal.generate(N); //generate normal vector of size N, same for both price1 AND price2
+            for (unsigned int j = 0;j < N;j++) {
+                s1 += r * s1*dt + v1 * s1*dt_sqrt*z[j];
+                s2 += r * s2*dt + v2 * s2*dt_sqrt*z[j];
+                sum_path_1 += s1;
+                sum_path_2 += s2;
+            }
+            this_price_1 = pay_off( sum_path_1 / N  )* discount;
+            this_price_2 = pay_off( sum_path_2 / N  )* discount;
+            this_greek = ( this_price_1 - this_price_2 ) / (2*h) ;
+            sum_greek += this_greek;
+            
+            // reset the variables
+            s1 = S0;
+            s2 = S0;
+            sum_path_1 = 0;
+            sum_path_2 = 0;
         }
         // record time
-        duration = (clock()-c)/(double)CLOCKS_PER_SEC;
-        // return results
-        // handle edge cases
-        double C = (price / no_sims)*exp(-r * T);
-        res.push_back(C); // price
-        res.push_back(duration); //time
-        res.push_back(C); //mean
-        res.push_back((mean_sqr *exp(-r * T) *exp(-r * T) / no_sims) - pow(C, 2)); //variance
-
+        duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+        
+        res.push_back( sum_greek / no_sims );
+        res.push_back( duration );
+    }
+    
+    void AA_euler_vega(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
+        clock_t c;
+        double duration;
+        double dt = (double)T / N;
+        double dt_sqrt = pow((double)T / N, 0.5); // ADDED: Casting T to double
+        double discount = exp(-r * T);
+        double sum_path_1 = 0;
+        double sum_path_2 = 0;
+        double sum_path_3 = 0;
+        double sum_greek = 0;
+        
+        double this_price_1 = 0;
+        double this_price_2 = 0;
+        double this_price_3 = 0;
+        
+        double s1 = S0 + h;
+        double s2 = S0;
+        double s3 = S0 - h;
+        
+        double discount = exp(-r*T);
+        
+        c = clock();// start the timer
+        
+        for (unsigned int i = 0; i < no_sims; i++) {
+            vector<double> z = normal.generate(N); //generate normal vector of size N, for both price1 AND price2
+            
+            for (unsigned int j = 0;j < N;j++) {
+                s1 += r * s1*dt + v * s1*dt_sqrt*z[j];
+                s2 += r * s2*dt + v * s2*dt_sqrt*z[j];
+                s3 += r * s3*dt + v * s3*dt_sqrt*z[j];
+                sum_path_1 += s1;
+                sum_path_2 += s2;
+            }
+            this_price_1 = pay_off( sum_path_1 / N )* discount;
+            this_price_2 = pay_off( sum_path_2 / N )* discount;
+            this_price_3 = pay_off( sum_path_3 / N )* discount;
+            this_greek = ( this_price_1 - 2 * this_price_2 + this_price_3 ) / pow(h,2);
+            sum_greek += this_greek;
+            
+            // reset the variables
+            s1 = S0 + h;
+            s2 = S0;
+            s3 = S0 - h;
+            sum_path_1 = 0;
+            sum_path_2 = 0;
+            sum_path_3 = 0;
+        }
+        // record time
+        duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+        
+        res.push_back( sum_greek / no_sims );
+        res.push_back( duration );
     }
     
     void MC_euler_pricing_non_anti(double S0, double r, double v, unsigned int no_sims, vector<double>& res) {
@@ -1090,7 +1181,9 @@ int main() {
     opt.calculate_price("analytic",s0,r,v,no_sims);
     opt.calculate_price("euler",s0,r,v,no_sims);
     opt.calculate_price("milstein",s0,r,v,no_sims);
-     
+    
+    /*
+    
     opt.calculate_delta("analytic","analytic",s0,r,v,no_sims, h);
     opt.calculate_delta("euler","fd",s0,r,v,no_sims, h);
     opt.calculate_delta("milstein","fd",s0,r,v,no_sims, h);
