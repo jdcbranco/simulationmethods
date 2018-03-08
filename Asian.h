@@ -27,6 +27,34 @@ public:
             FixedStrikeAsianOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(path.geometric_average(bump) - m_Strike, 0.0); })
     {
     }
+    double pathwise_delta(const Path &path, const ModelParams &params) const override {
+        double P = payoff(path,None);
+        return exp(-params.getR()*params.getT())* (P>0? (P+m_Strike)/params.getS0(): 0.0);
+    };
+    double pathwise_gamma(const Path &path, const ModelParams &params) const override {
+        return NAN;
+    };
+    double pathwise_vega(const Path &path, const ModelParams &params) const override {
+        return NAN;
+        //The following commented code is for the arithmetic average
+//
+//        double P = payoff(path,None);
+//        if(P>0) {
+//            unsigned int m = path.size();
+//            double r = params.getR();
+//            double sigma = params.getSigma();
+//            double sigma2 = sigma*sigma;
+//            double sum = 0.0;
+//            for(unsigned int i = 0; i<m; i++) {
+//                double S = path.get(i);
+//                double t = ((i+1)*params.getT()/m);
+//                sum += S*(log(S/params.getS0()) - (r+0.5*sigma2)*t);
+//            }
+//            return exp(-params.getR()*params.getT()) * sum / (m*sigma);
+//        } else {
+//            return 0;
+//        }
+    };
 };
 
 /*

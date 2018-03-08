@@ -25,7 +25,9 @@ public:
         return m_Payoff(path,bump);
     }
     double getT() const { return m_T; }
-    function<const double(const Path&, const Bump&)> getPayoffFunction() const { return m_Payoff; }
+    virtual double pathwise_delta(const Path &path, const ModelParams &params) const = 0;
+    virtual double pathwise_gamma(const Path &path, const ModelParams &params) const = 0;
+    virtual double pathwise_vega(const Path &path, const ModelParams &params) const = 0;
 };
 
 

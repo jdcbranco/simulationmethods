@@ -17,10 +17,10 @@ using namespace std;
  */
 class Model: public ModelParams {
 protected:
-    Option m_Option;
+    Option &m_Option;
 public:
     Model(Option &option, double S0, double sigma, double r): ModelParams(S0,sigma,r), m_Option(option) {}
-    Option getOption() const { return m_Option; }
+    Option& getOption() const { return m_Option; }
     double getT() const override {
         return m_Option.getT();
     }

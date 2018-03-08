@@ -5,6 +5,8 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <unordered_set>
+#include <unordered_map>
 #include "ModelParams.h"
 
 using namespace std;
@@ -102,6 +104,12 @@ public:
                 }
             }
         }
+    }
+    unsigned int size() const {
+        return m_Prices.size();
+    }
+    double get(unsigned int i) const {
+        return m_Prices[i];
     }
     double back(Bump bump) const {
         switch (bump) {

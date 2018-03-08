@@ -25,6 +25,25 @@ public:
             VanillaOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(path.back(bump) - m_Strike, 0.0); })
     {
     }
+    double pathwise_delta(const Path &path, const ModelParams &params) const override {
+        double P = payoff(path,None);
+        return exp(-params.getR()*params.getT())* (P>0? (P+m_Strike)/params.getS0(): 0.0);
+    };
+    double pathwise_gamma(const Path &path, const ModelParams &params) const override {
+        return NAN;
+    };
+    double pathwise_vega(const Path &path, const ModelParams &params) const override {
+        double P = payoff(path,None);
+        if(P>0) {
+            double r = params.getR();
+            double S = P+m_Strike;
+            double sigma = params.getSigma();
+            double sigma2 = sigma*sigma;
+            return exp(-params.getR()*params.getT())* (S/sigma)*(log(S/params.getS0()) - (r+0.5*sigma2)*params.getT());
+        } else {
+            return 0;
+        }
+    };
 };
 
 class VanillaPut: public VanillaOption {
