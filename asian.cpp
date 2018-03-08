@@ -222,6 +222,7 @@ class asian_option_geometric{
                 s3 += r * s3*dt + v * s3*dt_sqrt*z[j];
                 sum_path_1 += s1;
                 sum_path_2 += s2;
+                sum_path_3 += s3;
             }
             this_price_1 = pay_off( sum_path_1 / N )* discount;
             this_price_2 = pay_off( sum_path_2 / N )* discount;
