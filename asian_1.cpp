@@ -111,14 +111,13 @@ class asian_option_geometric{
         return 0;
     }
 
-    // #################### wrong price #########################
-    void MC_euler_pricing_non_anti(double S0, double r, double v, unsigned int no_sims, vector<double>& res) {
+    void MC_euler_pricing(double S0, double r, double v, unsigned int no_sims, vector<double>& res) {
         // prameter initlisation
         clock_t c;
         double duration;
         double dt = (double)T / N;
         double dt_sqrt = pow(dt, 0.5); // ADDED: Casting T to double
-        double this_price - 0; // itermediate price results
+        double this_price = 0; // itermediate price results
         double price = 0; // price
         double discount = exp(-r * T); // discouting factor
         double log_sum = 0; // intemediate log price sum
@@ -129,7 +128,7 @@ class asian_option_geometric{
             vector<double> z = normal.generate(N); //generate normal vector of size N
 
             for (unsigned int j = 0;j < N;j++) {
-                s += r * s*dt + v * s*dt_sqr*z[j];
+                s += r * s*dt + v * s*dt_sqrt*z[j];
                 log_sum += log(s);
             }
             this_price = pay_off(exp(log_sum / N));
@@ -146,18 +145,18 @@ class asian_option_geometric{
         res.push_back(duration); //time
     }
 
-	  void analytic_solution_pricing(double S0, double r, double v, vector<double>& res){
-      double mu_a = T*(r-v*v/2)*((N+1)/2*N);
-      double var_a = T*v*v*(1/N+(N-1)*(2*N-1)/(6*N*N));
-      double sd_a = sqrt(var_a);
-      double d2 = (1/sd_a)*(log(S0/K)+mu_a);
-      double d1 = d2+sd_a;
-      double price = S0 * exp(mu_a + 0.5*var_a)*normalCDF(d1) - K*normalCDF(d2);
+    void analytic_solution_pricing(double S0, double r, double v, vector<double>& res){
+        double mu_a = (double)T*(r-v*v/2.0)*((N+1.0)/2.0*N);
+        double var_a = (double)T*v*v*(1.0/N+(N-1.0)*(2.0*N-1)/(6.0*N*N));
+        double sd_a = sqrt(var_a);
+        double d2 = (1.0/sd_a)*(log(S0/K)+mu_a);
+        double d1 = d2+sd_a;
+        double price = S0 * exp(mu_a + 0.5*var_a)*normalCDF(d1) - K*normalCDF(d2);
 
-      // return results
-  		res.push_back(price);
-  		res.push_back(0);
-	   }
+        // return results
+        res.push_back(price);
+        res.push_back(0);
+    }
 
     void MC_fd_delta(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
         clock_t c;
@@ -190,7 +189,7 @@ class asian_option_geometric{
 
     }
 
-    void MC_pw_delta(string method, double S0, double r, double v, int no_sims, vector<double> &delta) {
+    void MC_pw_delta(string method, double S0, double r, double v, int no_sims, vector<double> &res) {
         clock_t c;
         double duration;
         double mu_a = T*(r-v*v/2)*((N+1)/2*N);
@@ -203,12 +202,12 @@ class asian_option_geometric{
         c = clock();// start the timer
         vector<double> z = normal.generate(no_sims);
         for (unsigned int i = 0; i < no_sims; i++) {
-          payoff = pay_off(S0 * exp(mu_a + sd_a *z[i]));
-          if(payoff>0 && is_call){
-              delta+= exp(mu_a + sd_a *z[i])
-          }else if(payoff>0 && !is_call){
-              delta+= -exp(mu_a + sd_a *z[i])
-          }
+            payoff = pay_off(S0 * exp(mu_a + sd_a *z[i]));
+            if(payoff>0 && is_call){
+                delta += exp(mu_a + sd_a *z[i]);
+            } else if (payoff>0 && !is_call) {
+                delta += -exp(mu_a + sd_a *z[i]);
+            }
         }
 
         // calculate detla
@@ -408,7 +407,7 @@ class asian_option_geometric{
         mean_sqr /= no_sims;
 
         // return the display_results
-        res.push_back(mean*exp(-r*T); //vega
+        res.push_back(mean*exp(-r*T)); //vega
         res.push_back(duration); //time
         res.push_back(mean); //mean
         res.push_back(mean_sqr - mean * mean); //variance
@@ -440,7 +439,7 @@ class asian_option_geometric{
           continue;
         }
 
-        buffer = z[i]*exp(mu_a + sd_a *z[i])*g
+        buffer = z[i]*exp(mu_a + sd_a *z[i])*g;
         mean += buffer;
         mean_sqr += buffer * buffer;
       }
@@ -453,7 +452,7 @@ class asian_option_geometric{
       mean_sqr /= no_sims;
 
       // return the display_results
-      res.push_back(mean*exp(-r*T); //vega
+      res.push_back(mean*exp(-r*T)); //vega
       res.push_back(duration); //time
       res.push_back(mean); //mean
       res.push_back(mean_sqr - mean * mean); //variance
@@ -567,9 +566,7 @@ public :
 
         //Use selected method to calcuate c_0
         if (icompare(method, "euler")) {
-            MC_euler_pricing_non_anti(S0, r, v, no_sims, res);
-        } else if (icompare(method,"milstein")){
-            MC_milstein_pricing(S0,r,v,no_sims, res);
+            MC_euler_pricing(S0, r, v, no_sims, res);
         } else if (icompare(method,"analytic")){
             analytic_solution_pricing(S0, r, v, res);
         } else {
@@ -877,26 +874,22 @@ int main() {
 	srand(time(NULL));
 	asian_option_geometric opt(type,T,N,K);
 
-    /*
-
     opt.calculate_price("analytic",s0,r,v,no_sims);
     opt.calculate_price("euler",s0,r,v,no_sims);
-    opt.calculate_price("milstein",s0,r,v,no_sims);
 
+    /*
+    
     opt.calculate_delta("analytic","analytic",s0,r,v,no_sims, h);
     opt.calculate_delta("euler","fd",s0,r,v,no_sims, h);
-    opt.calculate_delta("milstein","fd",s0,r,v,no_sims, h);
 
     opt.calculate_gamma("analytic","analytic",s0,r,v,no_sims, h);
     opt.calculate_gamma("euler","fd",s0,r,v,no_sims, h);
-    opt.calculate_gamma("milstein","fd",s0,r,v,no_sims, h);
 
     opt.calculate_vega("analytic","analytic",s0,r,v,no_sims, h);
     opt.calculate_vega("euler","fd",s0,r,v,no_sims, h);
-    opt.calculate_vega("milstein","fd",s0,r,v,no_sims, h);
 
-    */
-
+    
+    /*
     int start = 10, finish = no_sims, num_of_increments = 10;
     vector<double> no_sims_list = linspace(start,finish,num_of_increments); // gives a series of integers from start to finish, with num_of_increments equal sized steps
 
@@ -904,7 +897,9 @@ int main() {
     delta_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
     gamma_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
     vega_export_for_changing_M(opt,"milstein",s0,r,v,no_sims_list,h);
-
+     
+     */
+     
     cout << "DONE" << endl;
 	int dummy;
 	cin >> dummy;
