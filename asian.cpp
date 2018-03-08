@@ -111,6 +111,188 @@ class asian_option_geometric{
         return 0;
     }
     
+    void AA_explicit_pricing(double S0, double r, double v, unsigned int no_sim, vector<double> &res ) {
+        // parameter init
+        clock_t c;
+        double duration;
+        double dt = (double)T/N;
+        double dt_sqrt = pow( (double)T/N, 0.5);
+        double sum_path = 0;
+        double sum_price = 0;
+        double s = 0;
+        double discount = exp(-r*T);
+        
+        c = clock();
+        for(unsigned int i = 0; i < no_sims; i++) {
+            vector<double> z = normal.generate(N) // generate N normal samples
+            
+            for( unsigned int j = 0; j < N; j++ ) {
+                s = s * exp( ( r - pow(v,2)/2 ) * dt + v*dt_sqrt*z[j] );
+                sum_path += s;
+            }
+            sum_price += pay_off( sum_path / N );
+            
+            // reset variables after loop
+            sum_path = 0;
+            s = S0;
+        }
+        duration = ( clock() - c ) / (double)CLOCKS_PER_SEC;
+        
+        res.push_back( discount * sum_price / no_sims );
+        res.push_back( duration );
+    }
+    
+    void AA_explicit_delta(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
+        clock_t c;
+        double duration;
+        double dt = (double)T / N;
+        double dt_sqrt = pow((double)T / N, 0.5); // ADDED: Casting T to double
+        double discount = exp(-r * T);
+        double sum_path_1 = 0;
+        double sum_path_2 = 0;
+        double sum_greek = 0;
+        
+        double this_price_1 = 0;
+        double this_price_2 = 0;
+        
+        double s1 = S0 + h;
+        double s2 = S0 - h;
+        double v1 = v;
+        double v2 = v;
+        
+        double discount = exp(-r*T);
+        
+        c = clock();// start the timer
+        
+        for (unsigned int i = 0; i < no_sims; i++) {
+            vector<double> z = normal.generate(N); //generate normal vector of size N, same for both price1 AND price2
+            for (unsigned int j = 0;j < N;j++) {
+                s1 = s1 * exp( ( r - pow(v1,2)/2 ) * dt + v1*dt_sqrt*z[j] );
+                s2 = s2 * exp( ( r - pow(v2,2)/2 ) * dt + v2*dt_sqrt*z[j] );
+                sum_path_1 += s1;
+                sum_path_2 += s2;
+            }
+            this_price_1 = pay_off( sum_path_1 / N  )* discount;
+            this_price_2 = pay_off( sum_path_2 / N  )* discount;
+            this_greek = ( this_price_1 - this_price_2 ) / (2*h) ;
+            sum_greek += this_greek;
+            
+            // reset the variables
+            s1 = S0 + h;
+            s2 = S0 - h;
+            sum_path_1 = 0;
+            sum_path_2 = 0;
+        }
+        // record time
+        duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+        
+        res.push_back( sum_greek / no_sims );
+        res.push_back( duration );
+    }
+    
+    void AA_explicit_vega(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
+        clock_t c;
+        double duration;
+        double dt = (double)T / N;
+        double dt_sqrt = pow((double)T / N, 0.5); // ADDED: Casting T to double
+        double discount = exp(-r * T);
+        double sum_path_1 = 0;
+        double sum_path_2 = 0;
+        double sum_greek = 0;
+        
+        double this_price_1 = 0;
+        double this_price_2 = 0;
+        
+        double s1 = S0;
+        double s2 = S0;
+        double v1 = v+h;
+        double v2 = v-h;
+        
+        double discount = exp(-r*T);
+        
+        c = clock();// start the timer
+        
+        for (unsigned int i = 0; i < no_sims; i++) {
+            vector<double> z = normal.generate(N); //generate normal vector of size N, same for both price1 AND price2
+            for (unsigned int j = 0;j < N;j++) {
+                s1 = s1 * exp( ( r - pow(v1,2)/2 ) * dt + v1*dt_sqrt*z[j] );
+                s2 = s2 * exp( ( r - pow(v2,2)/2 ) * dt + v2*dt_sqrt*z[j] );
+                sum_path_1 += s1;
+                sum_path_2 += s2;
+            }
+            this_price_1 = pay_off( sum_path_1 / N  )* discount;
+            this_price_2 = pay_off( sum_path_2 / N  )* discount;
+            this_greek = ( this_price_1 - this_price_2 ) / (2*h) ;
+            sum_greek += this_greek;
+            
+            // reset the variables
+            s1 = S0;
+            s2 = S0;
+            sum_path_1 = 0;
+            sum_path_2 = 0;
+        }
+        // record time
+        duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+        
+        res.push_back( sum_greek / no_sims );
+        res.push_back( duration );
+    }
+    
+    void AA_explicit_gamma(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
+        clock_t c;
+        double duration;
+        double dt = (double)T / N;
+        double dt_sqrt = pow((double)T / N, 0.5); // ADDED: Casting T to double
+        double discount = exp(-r * T);
+        double sum_path_1 = 0;
+        double sum_path_2 = 0;
+        double sum_path_3 = 0;
+        double sum_greek = 0;
+        
+        double this_price_1 = 0;
+        double this_price_2 = 0;
+        double this_price_3 = 0;
+        
+        double s1 = S0 + h;
+        double s2 = S0;
+        double s3 = S0 - h;
+        
+        double discount = exp(-r*T);
+        
+        c = clock();// start the timer
+        
+        for (unsigned int i = 0; i < no_sims; i++) {
+            vector<double> z = normal.generate(N); //generate normal vector of size N, for both price1 AND price2
+            
+            for (unsigned int j = 0;j < N;j++) {
+                s1 = s1 * exp( ( r - pow(v,2)/2 ) * dt + v*dt_sqrt*z[j] );
+                s2 = s2 * exp( ( r - pow(v,2)/2 ) * dt + v*dt_sqrt*z[j] );
+                s3 = s3 * exp( ( r - pow(v,2)/2 ) * dt + v*dt_sqrt*z[j] );
+                sum_path_1 += s1;
+                sum_path_2 += s2;
+                sum_path_3 += s3;
+            }
+            this_price_1 = pay_off( sum_path_1 / N )* discount;
+            this_price_2 = pay_off( sum_path_2 / N )* discount;
+            this_price_3 = pay_off( sum_path_3 / N )* discount;
+            this_greek = ( this_price_1 - 2 * this_price_2 + this_price_3 ) / pow(h,2);
+            sum_greek += this_greek;
+            
+            // reset the variables
+            s1 = S0 + h;
+            s2 = S0;
+            s3 = S0 - h;
+            sum_path_1 = 0;
+            sum_path_2 = 0;
+            sum_path_3 = 0;
+        }
+        // record time
+        duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+        
+        res.push_back( sum_greek / no_sims );
+        res.push_back( duration );
+    }
+    
     void AA_euler_pricing(double S0, double r, double v, unsigned int no_sim, vector<double> &res ) {
         // parameter init
         clock_t c;
@@ -155,10 +337,58 @@ class asian_option_geometric{
         double this_price_1 = 0;
         double this_price_2 = 0;
         
+        double s1 = S0 + h;
+        double s2 = S0 - h;
+        double v1 = v;
+        double v2 = v;
+        
+        double discount = exp(-r*T);
+        
+        c = clock();// start the timer
+        
+        for (unsigned int i = 0; i < no_sims; i++) {
+            vector<double> z = normal.generate(N); //generate normal vector of size N, same for both price1 AND price2
+            for (unsigned int j = 0;j < N;j++) {
+                s1 += r * s1*dt + v1 * s1*dt_sqrt*z[j];
+                s2 += r * s2*dt + v2 * s2*dt_sqrt*z[j];
+                sum_path_1 += s1;
+                sum_path_2 += s2;
+            }
+            this_price_1 = pay_off( sum_path_1 / N  )* discount;
+            this_price_2 = pay_off( sum_path_2 / N  )* discount;
+            this_greek = ( this_price_1 - this_price_2 ) / (2*h) ;
+            sum_greek += this_greek;
+            
+            // reset the variables
+            s1 = S0 + h;
+            s2 = S0 - h;
+            sum_path_1 = 0;
+            sum_path_2 = 0;
+        }
+        // record time
+        duration = (clock() - c) / (double)CLOCKS_PER_SEC;
+        
+        res.push_back( sum_greek / no_sims );
+        res.push_back( duration );
+    }
+    
+    void AA_euler_vega(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
+        clock_t c;
+        double duration;
+        double dt = (double)T / N;
+        double dt_sqrt = pow((double)T / N, 0.5); // ADDED: Casting T to double
+        double discount = exp(-r * T);
+        double sum_path_1 = 0;
+        double sum_path_2 = 0;
+        double sum_greek = 0;
+        
+        double this_price_1 = 0;
+        double this_price_2 = 0;
+        
         double s1 = S0;
         double s2 = S0;
-        double v1 = v + h;
-        double v2 = v - h;
+        double v1 = v+h;
+        double v2 = v-h;
         
         double discount = exp(-r*T);
         
@@ -190,7 +420,7 @@ class asian_option_geometric{
         res.push_back( duration );
     }
     
-    void AA_euler_vega(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
+    void AA_euler_gamma(string method, double S0, double r, double v, int no_sims, vector<double> &res, double h) {
         clock_t c;
         double duration;
         double dt = (double)T / N;
