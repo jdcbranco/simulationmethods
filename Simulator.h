@@ -16,7 +16,7 @@ protected:
     bool m_Antithetic;
 public:
     Simulator(Random &rng, bool antithetic = false): m_Rng(rng), m_Antithetic(antithetic) {}
-    vector<Path> simulate(Model &model, int simulations, int path_size = 1) {
+    vector<Path> simulate(ModelParams &model, int simulations, int path_size = 1) {
         vector<Path> sims;
         for (int i = 0; i < simulations; ++i) {
             if(m_Antithetic) {

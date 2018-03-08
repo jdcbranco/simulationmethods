@@ -5,9 +5,9 @@
 #include <cmath>
 #include "Option.h"
 #include "ModelParams.h"
+#include "ModelResult.h"
 
 using namespace std;
-
 
 /**
  * Model assumptions for now are:
@@ -33,9 +33,9 @@ public:
      * @return pair where first is the price, second is the variance
      */
     virtual pair<double,double> calcPrice() const = 0;
-    virtual double calcDelta() const = 0;
-    virtual double calcGamma() const = 0;
-    virtual double calcVega() const = 0;
+    virtual pair<double,SensitivityMethod> calcDelta() const = 0;
+    virtual pair<double,SensitivityMethod> calcGamma() const = 0;
+    virtual pair<double,SensitivityMethod> calcVega() const = 0;
 };
 
 

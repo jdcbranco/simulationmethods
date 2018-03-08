@@ -28,7 +28,7 @@ int main() {
     cout << "Black Scholes: " << endl;
     cout << bsModelResult;
     for(int i: number_simulations) {
-        ModelResult mcModelResult = mcModel.simulate(simulator,i,mcModel.getSolver() == Explicit ? 1 : 5, LikelihoodRatio);
+        ModelResult mcModelResult = mcModel.simulate(simulator,i,mcModel.getSolver() == Explicit ? 1 : 5, SensitivityMethod::LikelihoodRatio);
         cout << "-------------" << endl;
         cout << "Simulations: " << i << endl;
         cout << mcModelResult;
@@ -36,15 +36,15 @@ int main() {
     //Asian call
     GFixedStrikeAsianCall asianCall(strike, 1.0);
     MCModel asianMcModel(asianCall, s0, sigma, r, 0.005, Explicit); //Optionally, can try Euler as well. Both work fine.
-    ModelResult asianMcModelResult = asianMcModel.simulate(simulator,100000, 10, PathwiseDifferentiation);
+    ModelResult asianMcModelResult = asianMcModel.simulate(simulator,100000, 100, SensitivityMethod::PathwiseDifferentiation);
     cout << "-------------" << endl;
-    cout << "Asian Call with 100k paths and 10 steps: " << endl;
+    cout << "Asian Call with 100k paths and 100 steps: " << endl;
     cout << asianMcModelResult;
     //using control variate
     asianMcModel.define_control_variate([&](const Path &path) { return vanillaCall.payoff(path,None); }, bsModelResult.getPrice());
-    ModelResult asianMcModelResultWithControlVariate = asianMcModel.simulate(simulator,100000, 10);
+    ModelResult asianMcModelResultWithControlVariate = asianMcModel.simulate(simulator,100000, 100);
     cout << "-------------" << endl;
-    cout << "Asian Call with 100k paths and 10 steps and Control Variates: " << endl;
+    cout << "Asian Call with 100k paths and 100 steps and Control Variates: " << endl;
     cout << asianMcModelResultWithControlVariate;
 
     return 0;

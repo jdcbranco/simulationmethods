@@ -44,9 +44,9 @@ pair<double,double> MCModel::calcPrice() const {
     }
 }
 
-double MCModel::calcDelta() const {
+pair<double,SensitivityMethod> MCModel::calcDelta() const {
     switch (m_SensitivityMethod) {
-        case FiniteDifference: {
+        case SensitivityMethod::FiniteDifference: {
             vector<double> payoffs_bump_up;
             vector<double> payoffs_bump_down;
             transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_up),
@@ -56,9 +56,9 @@ double MCModel::calcDelta() const {
             double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
             double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
             double size = payoffs_bump_up.size();
-            return size > 0 ? discount((sum_up - sum_down) / size) / (2 * m_h * m_S0) : NAN;
+            return pair<double,SensitivityMethod>(size > 0 ? discount((sum_up - sum_down) / size) / (2 * m_h * m_S0) : NAN, SensitivityMethod::FiniteDifference);
         }
-        case PathwiseDifferentiation: {
+        case SensitivityMethod::PathwiseDifferentiation: {
             vector<double> pathwise_deltas;
             transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(pathwise_deltas),
                       [&](const Path &path) {
@@ -66,9 +66,9 @@ double MCModel::calcDelta() const {
                       });
             double sum = accumulate(pathwise_deltas.begin(), pathwise_deltas.end(), 0.0);
             double size = pathwise_deltas.size();
-            return size > 0 ? sum / size : NAN;
+            return pair<double,SensitivityMethod>(size > 0 ? sum / size : NAN, SensitivityMethod::PathwiseDifferentiation);
         }
-        case LikelihoodRatio: {
+        case SensitivityMethod::LikelihoodRatio: {
             vector<double> payoffs;
             transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs),
                       [&](const Path &path) {
@@ -77,14 +77,14 @@ double MCModel::calcDelta() const {
                       });
             double sum = accumulate(payoffs.begin(), payoffs.end(), 0.0);
             double size = payoffs.size();
-            return size > 0? sum / size : NAN;
+            return pair<double,SensitivityMethod>(size > 0? sum / size : NAN, SensitivityMethod::LikelihoodRatio);
         }
     }
 }
 
-double MCModel::calcGamma() const {
+pair<double,SensitivityMethod> MCModel::calcGamma() const {
     switch(m_SensitivityMethod) {
-        case FiniteDifference: {
+        case SensitivityMethod::FiniteDifference: {
             vector<double> payoffs;
             vector<double> payoffs_bump_up;
             vector<double> payoffs_bump_down;
@@ -98,9 +98,9 @@ double MCModel::calcGamma() const {
             double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
             double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
             double size = payoffs_bump_up.size();
-            return size > 0 ? discount((sum_up + sum_down - 2.0 * sum) / size) / (m_h * m_h * m_S0 * m_S0) : NAN;
+            return pair<double,SensitivityMethod>(size > 0 ? discount((sum_up + sum_down - 2.0 * sum) / size) / (m_h * m_h * m_S0 * m_S0) : NAN, SensitivityMethod::FiniteDifference);
         }
-        case PathwiseDifferentiation: {
+        case SensitivityMethod::PathwiseDifferentiation: {
             vector<double> pathwise_gamma;
             transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(pathwise_gamma),
                       [&](const Path &path) {
@@ -108,18 +108,18 @@ double MCModel::calcGamma() const {
                       });
             double sum = accumulate(pathwise_gamma.begin(), pathwise_gamma.end(), 0.0);
             double size = pathwise_gamma.size();
-            return size > 0 ? sum / size : NAN;
+            return pair<double,SensitivityMethod>(size > 0 ? sum / size : NAN, SensitivityMethod::PathwiseDifferentiation);
         }
-        case LikelihoodRatio: {
-            return NAN;
+        case SensitivityMethod::LikelihoodRatio: {
+            return pair<double,SensitivityMethod>(NAN, SensitivityMethod::LikelihoodRatio);
         }
 
     }
 }
 
-double MCModel::calcVega() const {
+pair<double,SensitivityMethod> MCModel::calcVega() const {
     switch (m_SensitivityMethod) {
-        case FiniteDifference: {
+        case SensitivityMethod::FiniteDifference: {
             vector<double> payoffs_bump_up;
             vector<double> payoffs_bump_down;
             transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs_bump_up),
@@ -129,9 +129,9 @@ double MCModel::calcVega() const {
             double sum_up = accumulate(payoffs_bump_up.begin(), payoffs_bump_up.end(), 0.0);
             double sum_down = accumulate(payoffs_bump_down.begin(), payoffs_bump_down.end(), 0.0);
             double size = payoffs_bump_up.size();
-            return size > 0 ? discount((sum_up - sum_down) / size) / (2 * m_h * m_Sigma) : NAN;
+            return pair<double,SensitivityMethod>(size > 0 ? discount((sum_up - sum_down) / size) / (2 * m_h * m_Sigma) : NAN, SensitivityMethod::FiniteDifference);
         }
-        case PathwiseDifferentiation: {
+        case SensitivityMethod::PathwiseDifferentiation: {
             vector<double> pathwise_vega;
             transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(pathwise_vega),
                       [&](const Path &path) {
@@ -139,10 +139,10 @@ double MCModel::calcVega() const {
                       });
             double sum = accumulate(pathwise_vega.begin(), pathwise_vega.end(), 0.0);
             double size = pathwise_vega.size();
-            return size > 0 ? sum / size : NAN;
+            return pair<double,SensitivityMethod>(size > 0 ? sum / size : NAN, SensitivityMethod::PathwiseDifferentiation);
         }
-        case LikelihoodRatio: {
-            return NAN;
+        case SensitivityMethod::LikelihoodRatio: {
+            return pair<double,SensitivityMethod>(NAN, SensitivityMethod::LikelihoodRatio);
         }
     }
 }
