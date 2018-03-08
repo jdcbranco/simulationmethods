@@ -111,7 +111,7 @@ class asian_option_geometric{
         return 0;
     }
     
-    void AA_explicit_pricing(double S0, double r, double v, unsigned int no_sim, vector<double> &res ) {
+    void AA_explicit_pricing(double S0, double r, double v, unsigned int no_sims, vector<double> &res ) {
         // parameter init
         clock_t c;
         double duration;
@@ -124,7 +124,7 @@ class asian_option_geometric{
         
         c = clock();
         for(unsigned int i = 0; i < no_sims; i++) {
-            vector<double> z = normal.generate(N) // generate N normal samples
+            vector<double> z = normal.generate(N); // generate N normal samples
             
             for( unsigned int j = 0; j < N; j++ ) {
                 s = s * exp( ( r - pow(v,2)/2 ) * dt + v*dt_sqrt*z[j] );
@@ -154,13 +154,12 @@ class asian_option_geometric{
         
         double this_price_1 = 0;
         double this_price_2 = 0;
+        double this_greek = 0;
         
         double s1 = S0 + h;
         double s2 = S0 - h;
         double v1 = v;
         double v2 = v;
-        
-        double discount = exp(-r*T);
         
         c = clock();// start the timer
         
@@ -202,13 +201,12 @@ class asian_option_geometric{
         
         double this_price_1 = 0;
         double this_price_2 = 0;
+        double this_greek = 0;
         
         double s1 = S0;
         double s2 = S0;
         double v1 = v+h;
         double v2 = v-h;
-        
-        double discount = exp(-r*T);
         
         c = clock();// start the timer
         
@@ -252,12 +250,11 @@ class asian_option_geometric{
         double this_price_1 = 0;
         double this_price_2 = 0;
         double this_price_3 = 0;
+        double this_greek = 0;
         
         double s1 = S0 + h;
         double s2 = S0;
         double s3 = S0 - h;
-        
-        double discount = exp(-r*T);
         
         c = clock();// start the timer
         
@@ -293,7 +290,7 @@ class asian_option_geometric{
         res.push_back( duration );
     }
     
-    void AA_euler_pricing(double S0, double r, double v, unsigned int no_sim, vector<double> &res ) {
+    void AA_euler_pricing(double S0, double r, double v, unsigned int no_sims, vector<double> &res ) {
         // parameter init
         clock_t c;
         double duration;
@@ -306,7 +303,7 @@ class asian_option_geometric{
         
         c = clock();
         for(unsigned int i = 0; i < no_sims; i++) {
-            vector<double> z = normal.generate(N) // generate N normal samples
+            vector<double> z = normal.generate(N); // generate N normal samples
             
             for( unsigned int j = 0; j < N; j++ ) {
                 s += r * s*dt + v * s*dt_sqrt*z[j];
@@ -336,13 +333,12 @@ class asian_option_geometric{
         
         double this_price_1 = 0;
         double this_price_2 = 0;
+        double this_greek = 0;
         
         double s1 = S0 + h;
         double s2 = S0 - h;
         double v1 = v;
         double v2 = v;
-        
-        double discount = exp(-r*T);
         
         c = clock();// start the timer
         
@@ -384,13 +380,12 @@ class asian_option_geometric{
         
         double this_price_1 = 0;
         double this_price_2 = 0;
+        double this_greek = 0;
         
         double s1 = S0;
         double s2 = S0;
         double v1 = v+h;
         double v2 = v-h;
-        
-        double discount = exp(-r*T);
         
         c = clock();// start the timer
         
@@ -434,12 +429,11 @@ class asian_option_geometric{
         double this_price_1 = 0;
         double this_price_2 = 0;
         double this_price_3 = 0;
+        double this_greek = 0;
         
         double s1 = S0 + h;
         double s2 = S0;
         double s3 = S0 - h;
-        
-        double discount = exp(-r*T);
         
         c = clock();// start the timer
         
@@ -1411,7 +1405,6 @@ int main() {
     
     opt.calculate_price("analytic",s0,r,v,no_sims);
     opt.calculate_price("euler",s0,r,v,no_sims);
-    opt.calculate_price("milstein",s0,r,v,no_sims);
     
     /*
     
