@@ -13,8 +13,8 @@ enum Bump { None, Price_Up, Price_Down, Sigma_Up, Sigma_Down };
 
 /**
  * Stores the price paths and any pertubation to them required for finite difference methods.
- * By pertubing the path using the same random numbers, we save computation time.
- * We can argue that this means more memory needs, but we can perform otpimizations that
+ * By perturbing the path using the same random numbers, we save computation time.
+ * We can argue that this means more memory needs, but we can perform optimizations that
  * discard and free the path once all calculations to them have been done, so we could in theory
  * process the Paths in batches, either serially or in parallel.
  * Note that this code is highly couple to the Model code - assumes constant interest rate and volatility.
