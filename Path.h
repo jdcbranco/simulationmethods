@@ -43,6 +43,10 @@ protected:
     vector<double> m_Prices_bump_sigma_down;
     vector<double> m_RandomNumbers;
 public:
+    Path(function<double(double)> mu_model,function<double(double)> sigma_model, vector<double>&&random_numbers, double S0, bool antithetic = false):
+            m_RandomNumbers(random_numbers),
+            m_S0(S0),
+            m_Epsilon(antithetic ? -1.0 : 1.0) { }
     Path(ModelParams &model, vector<double> &&random_numbers, bool antithetic = false): m_RandomNumbers(random_numbers), m_S0(model.getS0()) {
         double S0 = model.getS0();
         double T = model.getT();
@@ -158,6 +162,140 @@ public:
         cout << endl;
         return os;
     };
+};
+
+class Path2 {
+private:
+    //TODO It doesn't feel right to let this function be here. May move it to some utils class
+    double geometric_average(vector<double> input) const {
+        vector<double> logPrices;
+        double acc = 0.0;
+        for (auto item: input) {
+            acc += log(item);
+        }
+        return exp(acc / input.size());
+    }
+
+protected:
+    function<double(double,Bump)> m_Mu, m_Sigma;
+    double m_S0, m_Epsilon, m_Bump, m_T;
+    vector<double> m_Prices; //non discounted price path
+    vector<double> m_RandomNumbers;
+public:
+    Path2(function<double(double,Bump)> mu_model, function<double(double,Bump)> sigma_model, vector<double> &&random_numbers,
+         double S0, double T, double bump_size, bool antithetic = false) :
+            m_Mu(mu_model),
+            m_Sigma(sigma_model),
+            m_RandomNumbers(random_numbers),
+            m_S0(S0),
+            m_T(T),
+            m_Epsilon(antithetic ? -1.0 : 1.0),
+            m_Bump(bump_size) {
+        m_Prices = generate(None);
+    }
+
+    virtual vector<double> generate(Bump bump) const { return vector<double>(); };
+
+    unsigned int size() const {
+        return m_Prices.size();
+    }
+
+    double front_random_number() const {
+        return m_RandomNumbers.size()>0 ? m_Epsilon * m_RandomNumbers.front() : NAN;
+    }
+    double random_number(unsigned int i) const {
+        return m_RandomNumbers.size()>i ? m_Epsilon * m_RandomNumbers[i] : NAN;
+    }
+    double back() const {
+        return back(None);
+    }
+    double back(Bump bump) const {
+        return generate(bump).back();
+    }
+    double geometric_average(Bump bump) const {
+        return geometric_average(generate(bump));
+    }
+};
+
+class LogNormalPath: public Path2 {
+public:
+    LogNormalPath(function<double(double,Bump)> mu_model,
+                  function<double(double,Bump)> sigma_model,
+                  vector<double>&&random_numbers,
+                  double S0,
+                  double T,
+                  double bump_size,
+                  bool antithetic = false):
+            Path2(mu_model, sigma_model, move(random_numbers), S0, T, bump_size, antithetic) {}
+    vector<double> generate(Bump bump) const override {
+        vector<double> path;
+        double price_bump = 1.0, sigma_bump = 1.0;
+        switch(bump) {
+            case Price_Up:
+                price_bump = (1.0+m_Bump);
+                break;
+            case Price_Down:
+                price_bump = (1.0-m_Bump);
+                break;
+            case Sigma_Up:
+                sigma_bump = (1.0+m_Bump);
+                break;
+            case Sigma_Down:
+                sigma_bump = (1.0-m_Bump);
+                break;
+            case None:
+                break;
+        }
+        double factor = 0.0;
+        double dt = m_T / m_RandomNumbers.size();
+        for(int i = 1; i <= m_RandomNumbers.size(); i++) {
+            auto rn = m_Epsilon * m_RandomNumbers[i - 1];
+            factor += m_Mu(dt,bump)*dt + m_Sigma(dt,bump) * rn;
+            path.push_back(m_S0 * price_bump * exp(factor));
+        }
+        return path;
+    }
+};
+
+class EulerPath: public Path2 {
+public:
+    EulerPath(function<double(double,Bump)> mu_model,
+              function<double(double,Bump)> sigma_model,
+              vector<double>&&random_numbers,
+              double S0,
+              double T,
+              double bump_size,
+              bool antithetic = false):
+            Path2(mu_model, sigma_model, move(random_numbers), S0, T, bump_size, antithetic) {}
+    vector<double> generate(Bump bump) const override {
+        vector<double> path;
+        double price_bump = 1.0, sigma_bump = 1.0;
+        switch(bump) {
+            case Price_Up:
+                price_bump = (1.0+m_Bump);
+                break;
+            case Price_Down:
+                price_bump = (1.0-m_Bump);
+                break;
+            case Sigma_Up:
+                sigma_bump = (1.0+m_Bump);
+                break;
+            case Sigma_Down:
+                sigma_bump = (1.0-m_Bump);
+                break;
+            case None:
+                break;
+        }
+        double factor = 0.0;
+        double dt = m_T / m_RandomNumbers.size();
+        double S = m_S0 * price_bump;
+        for(int i = 1; i <= m_RandomNumbers.size(); i++) {
+            auto rn = m_Epsilon * m_RandomNumbers[i - 1];
+            factor = (1.0 + m_Mu(dt,bump) * dt + m_Sigma(dt,bump) * rn); //double factor_euler = (1.0 + r * dt + sigma * dt_sqrt * rn);
+            path.push_back(S = S * factor);
+        }
+        return path;
+    }
 };
 
 #endif //SIMULATIONMETHODS_PATH_H

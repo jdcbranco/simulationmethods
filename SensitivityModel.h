@@ -7,7 +7,6 @@
 #include "Vanilla.h"
 #include "Asian.h"
 
-
 /**
  * Template class responsible for helping the greeks calculation during the Monte Carlo simulations.
  * The sensitivity is calculated per path. The MCModel will then take expected value of the results from this class.
@@ -197,7 +196,6 @@ namespace Greeks_by_LR {
 
         double calcVega(const Path &path) const override {
             double payoff = m_Model.getOption().payoff(path);
-            double S_T = path.back();
             double S_0 = m_Model.getS0();
             double sigma = m_Model.getSigma();
             double T = m_Model.getT();
