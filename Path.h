@@ -12,6 +12,7 @@
 using namespace std;
 static bool print_sample_path = false;
 enum Bump { None, Price_Up, Price_Down, Sigma_Up, Sigma_Down };
+enum PathType { Price, GeometricAverage };
 
 /**
  * Stores the price paths and any pertubation to them required for finite difference methods.
@@ -34,7 +35,11 @@ private:
         }
         return exp(acc / input.size());
     }
+    double arithmetic_average(vector<double> input) const {
+        return input.size()>0 ? accumulate(input.begin(), input.end(), 0.0) / input.size() : NAN;
+    }
 protected:
+    PathType m_PathType;
     double m_S0, m_Epsilon;
     vector<double> m_Prices; //non discounted price path
     vector<double> m_Prices_bump_S_up;
@@ -43,11 +48,10 @@ protected:
     vector<double> m_Prices_bump_sigma_down;
     vector<double> m_RandomNumbers;
 public:
-    Path(function<double(double)> mu_model,function<double(double)> sigma_model, vector<double>&&random_numbers, double S0, bool antithetic = false):
+    Path(ModelParams &model, vector<double> &&random_numbers, bool antithetic = false):
             m_RandomNumbers(random_numbers),
-            m_S0(S0),
-            m_Epsilon(antithetic ? -1.0 : 1.0) { }
-    Path(ModelParams &model, vector<double> &&random_numbers, bool antithetic = false): m_RandomNumbers(random_numbers), m_S0(model.getS0()) {
+            m_S0(model.getS0()),
+            m_PathType(model.getSolver()==ExplicitGeometricAverage?GeometricAverage:Price) {
         double S0 = model.getS0();
         double T = model.getT();
         double r = model.getR();
@@ -72,8 +76,7 @@ public:
         for(int i = 1; i <= random_numbers.size(); i++) {
             auto rn = m_Epsilon * random_numbers[i-1];
             switch(model.getSolver()) {
-                case Explicit:
-                {
+                case Explicit: {
                     factor_explicit += (r - sigma2 / 2) * dt + sigma * dt_sqrt * rn;
                     factor_explicit_sigma_up += (r - sigma2up / 2) * dt +  sigma_up * dt_sqrt * rn;
                     factor_explicit_sigma_down += (r - sigma2down / 2) * dt +  sigma_down * dt_sqrt * rn;
@@ -84,8 +87,21 @@ public:
                     m_Prices_bump_sigma_down.push_back(S0 * exp(factor_explicit_sigma_down));
                     continue;
                 }
-                case Euler:
-                case Milstein: {
+                case ExplicitGeometricAverage: {
+                    double n = model.getDim();
+                    double a = (n+1)/(2*n);
+                    double b = sqrt((n+1)*(2*n+1)/(6*n*n));
+                    factor_explicit += (r - sigma2 / 2) * a * dt + sigma * b * dt_sqrt * rn;
+                    factor_explicit_sigma_up += (r - sigma2up / 2) * a * dt +  sigma_up * b * dt_sqrt * rn;
+                    factor_explicit_sigma_down += (r - sigma2down / 2) * a * dt +  sigma_down * b * dt_sqrt * rn;
+                    m_Prices.push_back(S0 * exp(factor_explicit));
+                    m_Prices_bump_S_up.push_back((S0 * (1 + h)) * exp(factor_explicit));
+                    m_Prices_bump_S_down.push_back((S0 * (1 - h)) * exp(factor_explicit));
+                    m_Prices_bump_sigma_up.push_back(S0 * exp(factor_explicit_sigma_up));
+                    m_Prices_bump_sigma_down.push_back(S0 * exp(factor_explicit_sigma_down));
+                    continue;
+                }
+                case Euler: {
                     double St_previous = St;
                     double St_up_previous = St_up;
                     double St_down_previous = St_down;
@@ -108,6 +124,10 @@ public:
                 }
             }
         }
+    }
+
+    PathType getPathType() const {
+        return m_PathType;
     }
     unsigned int size() const {
         return m_Prices.size();
@@ -150,6 +170,20 @@ public:
                 return geometric_average(m_Prices_bump_sigma_up);
             case Sigma_Down:
                 return geometric_average(m_Prices_bump_sigma_down);
+        }
+    }
+    double arithmetic_average(Bump bump) const {
+        switch (bump) {
+            case None:
+                return arithmetic_average(m_Prices);
+            case Price_Up:
+                return arithmetic_average(m_Prices_bump_S_up);
+            case Price_Down:
+                return arithmetic_average(m_Prices_bump_S_down);
+            case Sigma_Up:
+                return arithmetic_average(m_Prices_bump_sigma_up);
+            case Sigma_Down:
+                return arithmetic_average(m_Prices_bump_sigma_down);
         }
     }
     friend ostream& operator<<(ostream& os, const Path &path) {

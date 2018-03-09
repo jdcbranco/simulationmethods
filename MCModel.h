@@ -74,6 +74,7 @@ public:
     MCModel(OPTION &option, double S0, double sigma, double r, double h = 0.01, SDESolver sdeSolver = Explicit): Model<OPTION>(option, S0, sigma, r) {
         this->m_h = h;
         this->m_Solver = sdeSolver;
+        this->m_dim = option.getDim();
     }
 
     void define_control_variate(function<const double (const Path&)> control_variate, double control_variate_mean) {
@@ -135,15 +136,14 @@ template<class OPTION> pair<double,double> MCModel<OPTION>::calcPrice() const {
         double variance = ((sum_of_squares / size) - estimate * estimate) / size;
         return pair<double, double>(estimate, variance);
     } else {
-        cout << "* Control variate version *" << endl;
         vector<double> payoffs, control_variates;
         transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(control_variates), control_variate);
 
         double size = control_variates.size();
 
-        double beta = 0.8;
+        double beta = 1.0;
         for(int i = 0 ; i< simulation_vector.size(); i++) {
-            payoffs.push_back(m_Option.payoff(simulation_vector[i], None) - beta*discount(control_variates[i]));
+            payoffs.push_back(m_Option.payoff(simulation_vector[i], None) - beta*control_variates[i]);
         }
         double sum = 0.0, sum_of_squares = 0.0;
         for (int i =0; i<payoffs.size(); i++) {
@@ -153,7 +153,7 @@ template<class OPTION> pair<double,double> MCModel<OPTION>::calcPrice() const {
         }
         double estimate = size > 0 ? sum / size : NAN;
         double variance = ((sum_of_squares / size) - estimate * estimate) / size;
-        return pair<double, double>(estimate+control_variate_mean, variance);
+        return pair<double, double>(estimate+beta*control_variate_mean, variance);
     }
 }
 

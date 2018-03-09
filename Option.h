@@ -19,8 +19,9 @@ class Option {
 protected:
     function<const double (const Path&, const Bump&)> m_Payoff;
     double m_T; //Time to Expiry
+    int m_dim;
 public:
-    Option(function<const double (const Path&, const Bump&)> payoff, double tte): m_T(tte), m_Payoff(payoff) {}
+    Option(function<const double (const Path&, const Bump&)> payoff, double tte, int dim = 1): m_T(tte), m_Payoff(payoff), m_dim(dim) {}
     double payoff(const Path &path) const {
         return payoff(path, None);
     }
@@ -28,9 +29,7 @@ public:
         return m_Payoff(path,bump);
     }
     double getT() const { return m_T; }
-    virtual double pathwise_delta(const Path &path, const ModelParams &params) const = 0;
-    virtual double pathwise_gamma(const Path &path, const ModelParams &params) const = 0;
-    virtual double pathwise_vega(const Path &path, const ModelParams &params) const = 0;
+    int getDim() const { return m_dim; }
 };
 
 

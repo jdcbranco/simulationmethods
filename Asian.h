@@ -10,7 +10,7 @@ class AsianOption: public Option {
 protected:
     double m_Strike;
 public:
-    AsianOption(double strike, double tte, function<const double (const Path&, const Bump&)> payoff): m_Strike(strike), Option(payoff,tte) {
+    AsianOption(double strike, double tte, int dim, function<const double (const Path&, const Bump&)> payoff): m_Strike(strike), Option(payoff,tte,dim) {
     }
     double getStrike() const {
         return m_Strike;
@@ -23,38 +23,16 @@ public:
 class AsianCall: public AsianOption {
 protected:
 public:
-    AsianCall(double strike, double tte):
-            AsianOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(path.geometric_average(bump) - m_Strike, 0.0); })
+    AsianCall(double strike, double tte, int dim):
+            AsianOption(strike, tte, dim, [&](const Path &path, const Bump &bump) -> double {
+                if(path.getPathType()==GeometricAverage) {
+                    return max(path.back(bump) - m_Strike, 0.0);
+                } else {
+                    return max(path.geometric_average(bump) - m_Strike, 0.0);
+                }
+            })
     {
     }
-    double pathwise_delta(const Path &path, const ModelParams &params) const override {
-        double P = payoff(path,None);
-        return exp(-params.getR()*params.getT())* (P>0? (P+m_Strike)/params.getS0(): 0.0);
-    };
-    double pathwise_gamma(const Path &path, const ModelParams &params) const override {
-        return NAN;
-    };
-    double pathwise_vega(const Path &path, const ModelParams &params) const override {
-        return NAN;
-        //The following commented code is for the arithmetic average
-//
-//        double P = payoff(path,None);
-//        if(P>0) {
-//            unsigned int m = path.size();
-//            double r = params.getR();
-//            double sigma = params.getSigma();
-//            double sigma2 = sigma*sigma;
-//            double sum = 0.0;
-//            for(unsigned int i = 0; i<m; i++) {
-//                double S = path.get(i);
-//                double t = ((i+1)*params.getT()/m);
-//                sum += S*(log(S/params.getS0()) - (r+0.5*sigma2)*t);
-//            }
-//            return exp(-params.getR()*params.getT()) * sum / (m*sigma);
-//        } else {
-//            return 0;
-//        }
-    };
 };
 
 /*
@@ -63,8 +41,48 @@ public:
 class AsianPut: public AsianOption {
 protected:
 public:
-    AsianPut(double strike, double tte):
-            AsianOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(m_Strike - path.geometric_average(bump), 0.0); })
+    AsianPut(double strike, double tte, int dim):
+            AsianOption(strike, tte, dim, [&](const Path &path, const Bump &bump) -> double {
+                if(path.getPathType()==GeometricAverage) {
+                    return max(m_Strike - path.back(bump), 0.0);
+                } else {
+                    return max(m_Strike - path.geometric_average(bump), 0.0);
+                }})
+    {
+    }
+};
+
+/**
+ * Arithmetic Average Fixed Strike Asian Call
+ */
+class ArithmeticAsianCall: public AsianOption {
+protected:
+public:
+    ArithmeticAsianCall(double strike, double tte, int dim):
+            AsianOption(strike, tte, dim, [&](const Path &path, const Bump &bump) -> double {
+                if(path.getPathType()==GeometricAverage) {
+                    return max(path.back(bump) - m_Strike, 0.0);
+                } else {
+                    return max(path.arithmetic_average(bump) - m_Strike, 0.0);
+                }
+            })
+    {
+    }
+};
+
+/**
+ * Arithmetic Average Fixed Strike Asian Put
+ */
+class ArithmeticAsianPut: public AsianOption {
+protected:
+public:
+    ArithmeticAsianPut(double strike, double tte, int dim):
+            AsianOption(strike, tte, dim, [&](const Path &path, const Bump &bump) -> double {
+                if(path.getPathType()==GeometricAverage) {
+                    return max(m_Strike - path.back(bump), 0.0);
+                } else {
+                    return max(m_Strike - path.arithmetic_average(bump), 0.0);
+                }})
     {
     }
 };
