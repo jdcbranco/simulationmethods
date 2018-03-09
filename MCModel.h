@@ -21,11 +21,55 @@ class MCModel: public Model<OPTION> {
     using Model<OPTION>::m_Sigma;
     using Model<OPTION>::discount;
     using Model<OPTION>::m_h;
+    using Model<OPTION>::m_r;
+    using Model<OPTION>::m_Solver;
 protected:
     vector<Path> simulation_vector;
+    vector<Path2> simulation_vector2;
     function<const double (const Path&)> control_variate;
     double control_variate_mean = 0.0;
     SensitivityMethod m_SensitivityMethod = SensitivityMethod::FiniteDifference;
+    double drift(double t, Bump bump) {
+        double price_bump = 1.0, sigma_bump = 1.0;
+        switch(bump) {
+            case Price_Up:
+                price_bump = (1.0+m_h);
+                break;
+            case Price_Down:
+                price_bump = (1.0-m_h);
+                break;
+            case Sigma_Up:
+                sigma_bump = (1.0+m_h);
+                break;
+            case Sigma_Down:
+                sigma_bump = (1.0-m_h);
+                break;
+            case None:
+                break;
+        }
+        double sigma = m_Sigma * sigma_bump;
+        return m_r - sigma * sigma;
+    }
+    double diffusion(double t, Bump bump) {
+        double price_bump = 1.0, sigma_bump = 1.0;
+        switch(bump) {
+            case Price_Up:
+                price_bump = (1.0+m_h);
+                break;
+            case Price_Down:
+                price_bump = (1.0-m_h);
+                break;
+            case Sigma_Up:
+                sigma_bump = (1.0+m_h);
+                break;
+            case Sigma_Down:
+                sigma_bump = (1.0-m_h);
+                break;
+            case None:
+                break;
+        }
+        return m_Sigma * sqrt(t) * sigma_bump;
+    }
 public:
     MCModel(OPTION &option, double S0, double sigma, double r, double h = 0.01, SDESolver sdeSolver = Explicit): Model<OPTION>(option, S0, sigma, r) {
         this->m_h = h;
@@ -35,6 +79,28 @@ public:
     void define_control_variate(function<const double (const Path&)> control_variate, double control_variate_mean) {
         this->control_variate = control_variate;
         this->control_variate_mean = control_variate_mean;
+    }
+
+    ModelResult simulate2(Simulator simulator, SensitivityModel<OPTION> &sensitivityModel, int simulations, int path_size = 1) {
+        clock_t start = clock();
+        this->simulation_vector2.clear();
+        this->simulation_vector2 = simulator.simulate(drift,diffusion, m_Solver, m_S0, m_Option.getT(), m_h, simulations, path_size);
+        auto price = this->calcPrice();
+        auto delta = this->calcDelta(sensitivityModel);
+        auto gamma = this->calcGamma(sensitivityModel);
+        auto vega  = this->calcVega(sensitivityModel);
+        ModelResult result;
+        result.setModelType(ModelType::MonteCarlo);
+        result.setDeltaMethod(delta.second);
+        result.setGammaMethod(gamma.second);
+        result.setVegaMethod(vega.second);
+        result.setPrice(price.first);
+        result.setPriceVariance(price.second);
+        result.setDelta(delta.first);
+        result.setGamma(gamma.first);
+        result.setVega(vega.first);
+        result.setCalcTime((std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
+        return result;
     }
 
     ModelResult simulate(Simulator simulator, SensitivityModel<OPTION> &sensitivityModel, int simulations, int path_size = 1) {

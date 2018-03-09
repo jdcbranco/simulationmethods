@@ -32,6 +32,7 @@ int main() {
     cout << "Black Scholes European Call: " << endl;
     cout << bsModelResult;
     for(int i: number_simulations) {
+        continue;
         ModelResult mcModelResult = mcModel.simulate(simulator,vanilla_call_fd,i,mcModel.getSolver() == Explicit ? 1 : 5);
         //ModelResult mcModelResult = mcModel.simulate(simulator,i,mcModel.getSolver() == Explicit ? 1 : 5, SensitivityMethod::Greeks_by_LR);
         cout << "-------------" << endl;
@@ -39,7 +40,7 @@ int main() {
         cout << mcModelResult;
     }
     //Asian call
-    double path_size = 10;
+    double path_size = 100;
     AsianCall asianCall(strike, 1.0);
     BSAsianCallModel bsAsianModel(asianCall, s0, sigma, r, path_size);
     ModelResult bsAsianModelResult = bsAsianModel.calculate(); //This is tested and matches the existing result
