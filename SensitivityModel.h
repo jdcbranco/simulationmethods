@@ -112,7 +112,27 @@ namespace Greeks_by_PD {
             return NAN;
         };
         double calcVega(const Path &path) const override {
-            return NAN;
+
+            double payoff = m_Model.getOption().payoff(path, None);
+            double A_T = path.getPathType()==GeometricAverage? path.back() : path.geometric_average(None);
+            double S_0 = m_Model.getS0();
+            double sigma = m_Model.getSigma();
+            double T = m_Model.getT();
+            //double Z = path.front_random_number();
+
+            double v = sigma;
+            double r = m_Model.getR();
+            double N = m_Model.getDim();
+
+            double mu_a = T*(r-v*v/2)*((N+1.0)/(2.0*N));
+            double var_a = T*v*v*((N+1.0)*(2.0*N+1)/(6.0*pow(N,2)));
+            //double var_a = T*v*v*(1.0/3 - 1.0/(2*N) + 1.0/(6.0*N));
+            double sd_a = sqrt(var_a);
+            double d_mu_a = -v*T*(1.0/N +(N-1.0)/(2.0*N));
+            double d_sd_a = T*v*(1.0/N+(N-1.0)*(2.0*N-1)/(6.0*pow(N,2)))/sd_a;
+            double Z = (log(A_T/S_0)-mu_a)/sd_a;
+
+            return payoff>0? m_Model.discount(A_T) * (d_mu_a + Z * d_sd_a) : 0.0;
         };
     };
 }
