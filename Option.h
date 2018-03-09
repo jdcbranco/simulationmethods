@@ -21,6 +21,9 @@ protected:
     double m_T; //Time to Expiry
 public:
     Option(function<const double (const Path&, const Bump&)> payoff, double tte): m_T(tte), m_Payoff(payoff) {}
+    double payoff(const Path &path) const {
+        return payoff(path, None);
+    }
     double payoff(const Path &path, const Bump &bump) const {
         return m_Payoff(path,bump);
     }

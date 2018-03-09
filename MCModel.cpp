@@ -73,7 +73,14 @@ pair<double,SensitivityMethod> MCModel::calcDelta() const {
             transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs),
                       [&](const Path &path) {
                           double S_T = path.back(None);
-                          return discount(m_Option.payoff(path, None)) * (log(S_T/m_S0) + (m_r - 0.5*m_Sigma*m_Sigma)*m_Option.getT()) / (m_S0*m_Sigma*m_Sigma*m_Option.getT());
+                          double discounted_payoff = discount(m_Option.payoff(path, None));
+                          double dt_sqrt = sqrt(m_Option.getT()/path.size());
+                          double Z = 0;
+                          for(int i=0; i<path.size(); i++) {
+                              Z += path.random_number(i);
+                          }
+                          Z /= sqrt(path.size());
+                          return discounted_payoff * Z / (m_S0 * m_Sigma * sqrt(m_Option.getT()));
                       });
             double sum = accumulate(payoffs.begin(), payoffs.end(), 0.0);
             double size = payoffs.size();
@@ -111,7 +118,17 @@ pair<double,SensitivityMethod> MCModel::calcGamma() const {
             return pair<double,SensitivityMethod>(size > 0 ? sum / size : NAN, SensitivityMethod::PathwiseDifferentiation);
         }
         case SensitivityMethod::LikelihoodRatio: {
-            return pair<double,SensitivityMethod>(NAN, SensitivityMethod::LikelihoodRatio);
+            vector<double> payoffs;
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs),
+                      [&](const Path &path) {
+                          double S_T = path.back(None);
+                          double discounted_payoff = discount(m_Option.payoff(path, None));
+                          double Z = path.front_random_number();
+                          return discounted_payoff * ((Z*Z-1)/(m_S0*m_S0*m_Sigma*m_Sigma*m_Option.getT()) - Z / (m_S0 * m_S0* m_Sigma * sqrt(m_Option.getT())));
+                      });
+            double sum = accumulate(payoffs.begin(), payoffs.end(), 0.0);
+            double size = payoffs.size();
+            return pair<double,SensitivityMethod>(size > 0? sum / size : NAN, SensitivityMethod::LikelihoodRatio);
         }
 
     }
@@ -142,7 +159,49 @@ pair<double,SensitivityMethod> MCModel::calcVega() const {
             return pair<double,SensitivityMethod>(size > 0 ? sum / size : NAN, SensitivityMethod::PathwiseDifferentiation);
         }
         case SensitivityMethod::LikelihoodRatio: {
-            return pair<double,SensitivityMethod>(NAN, SensitivityMethod::LikelihoodRatio);
+            vector<double> payoffs;
+            transform(simulation_vector.begin(), simulation_vector.end(), back_inserter(payoffs),
+                      [&](const Path &path) {
+                          double S_T = path.back(None);
+                          double discounted_payoff = discount(m_Option.payoff(path, None));
+                          double score = 0.0;
+                          double dt_sqrt = sqrt(m_Option.getT()/path.size());
+                          for(int i=0; i<path.size(); i++) {
+                              double Z = path.front_random_number();
+                              score += (Z*Z-1.0)/m_Sigma - Z * dt_sqrt;
+                          }
+
+                          return discounted_payoff * score;
+                      });
+
+            double sum = accumulate(payoffs.begin(), payoffs.end(), 0.0);
+            double size = payoffs.size();
+            return pair<double,SensitivityMethod>(size > 0? sum / size : NAN, SensitivityMethod::LikelihoodRatio);
         }
     }
 }
+
+pair<double,SensitivityMethod> MCModel::calcDelta(SensitivityModel &sensitivityModel) const {
+    double sum = 0.0;
+    double size = simulation_vector.size();
+    for (auto path : simulation_vector) {
+        sum += sensitivityModel.calcDelta(path);
+    }
+    return pair<double,SensitivityMethod>(size>0? sum/size: NAN, sensitivityModel.getSensitivityMethod());
+};
+pair<double,SensitivityMethod> MCModel::calcGamma(SensitivityModel &sensitivityModel) const {
+    double sum = 0.0;
+    double size = simulation_vector.size();
+    for (auto path : simulation_vector) {
+        sum += sensitivityModel.calcGamma(path);
+    }
+    return pair<double,SensitivityMethod>(size>0? sum/size: NAN, sensitivityModel.getSensitivityMethod());
+};
+pair<double,SensitivityMethod> MCModel::calcVega(SensitivityModel &sensitivityModel) const {
+    double sum = 0.0;
+    double size = simulation_vector.size();
+    for (auto path : simulation_vector) {
+        sum += sensitivityModel.calcVega(path);
+    }
+    return pair<double,SensitivityMethod>(size>0? sum/size: NAN, sensitivityModel.getSensitivityMethod());
+};

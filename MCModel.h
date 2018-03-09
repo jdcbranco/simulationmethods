@@ -5,6 +5,7 @@
 #include "ModelResult.h"
 #include "Model.h"
 #include "Simulator.h"
+#include "SensitivityModel.h"
 
 #include <vector>
 #include <ctime>
@@ -54,6 +55,9 @@ public:
     pair<double,SensitivityMethod> calcDelta() const override ;
     pair<double,SensitivityMethod> calcGamma() const override;
     pair<double,SensitivityMethod> calcVega() const override;
+    pair<double,SensitivityMethod> calcDelta(SensitivityModel &sensitivityModel) const;
+    pair<double,SensitivityMethod> calcGamma(SensitivityModel &sensitivityModel) const;
+    pair<double,SensitivityMethod> calcVega(SensitivityModel &sensitivityModel) const;
 };
 
 

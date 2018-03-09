@@ -14,6 +14,7 @@ class ModelResult {
     friend class Model;
     friend class MCModel;
     friend class BSModel;
+    friend class BSAsianModel;
     friend ostream& operator<<(ostream& os, const ModelResult &modelResult) {
         os << "Price: " << (modelResult.getPrice()) << " / Variance: " << (modelResult.getPriceVariance()) << endl;
         os << "Delta: " << (modelResult.getDelta()) << endl;

@@ -1,19 +1,17 @@
 
-#ifndef SIMULATIONMETHODS_BSVANILLA_H
-#define SIMULATIONMETHODS_BSVANILLA_H
+#ifndef SIMULATIONMETHODS_BSASIAN_H
+#define SIMULATIONMETHODS_BSASIAN_H
 
 #include <ctime>
 #include "Model.h"
-#include "Vanilla.h"
+#include "Asian.h"
 #include "ModelResult.h"
 
-using namespace std;
-
-class BSModel: public Model {
+class BSAsianModel: public Model {
 protected:
     double m_K;
 public:
-    BSModel(VanillaOption &option, double S0, double sigma, double r): Model(option,S0,sigma,r), m_K(option.getStrike()) {}
+    BSAsianModel(FixedStrikeAsianOption &option, double S0, double sigma, double r): Model(option,S0,sigma,r), m_K(option.getStrike()) {}
     ModelResult calculate() {
         clock_t start = clock();
         auto price_and_variance = this->calcPrice();
@@ -36,12 +34,11 @@ public:
 };
 
 /**
- * Black Scholes model for European call options.
- * Based on original version from european.cpp
+ * Black Scholes model (based on BS model assumptions) for Geometric Average Fixed Strike Asian call options.
  */
-class BSCallModel: public BSModel {
+class BSAsianCallModel: public BSAsianModel {
 public:
-    BSCallModel(VanillaCall &call, double S0, double sigma, double r): BSModel(call,S0,sigma,r) {}
+    BSAsianCallModel(GFixedStrikeAsianCall &call, double S0, double sigma, double r, double path_size): BSAsianModel(call,S0,sigma,r) {}
     pair<double,double> calcPrice() const override {
         double T = m_Option.getT();
         double d1 = (log(m_S0 / m_K) + (m_r + m_Sigma*m_Sigma / 2)*T) / (m_Sigma*sqrt(T));
@@ -65,14 +62,4 @@ public:
     };
 };
 
-/**
- * Black Scholes model for European put options.
- */
-//TODO Implement this class
-class BSPutModel: public BSModel {
-public:
-    BSPutModel(VanillaPut &put, double S0, double sigma, double r): BSModel(put,S0,sigma,r) {}
-};
-
-
-#endif //SIMULATIONMETHODS_BSVANILLA_H
+#endif //SIMULATIONMETHODS_BSASIAN_H

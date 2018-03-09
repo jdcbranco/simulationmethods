@@ -9,6 +9,10 @@
 
 using namespace std;
 
+inline double normalCDF(double value) {
+    return 0.5 * erfc(-value / sqrt(2));
+}
+
 /**
  * Model assumptions for now are:
  * Constant interest rate

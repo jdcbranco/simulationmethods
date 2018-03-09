@@ -35,13 +35,13 @@ private:
         return exp(acc / input.size());
     }
 protected:
-    double m_S0;
+    double m_S0, m_Epsilon;
     vector<double> m_Prices; //non discounted price path
     vector<double> m_Prices_bump_S_up;
     vector<double> m_Prices_bump_S_down;
     vector<double> m_Prices_bump_sigma_up;
     vector<double> m_Prices_bump_sigma_down;
-    vector<double> &m_RandomNumbers;
+    vector<double> m_RandomNumbers;
 public:
     Path(ModelParams &model, vector<double> &&random_numbers, bool antithetic = false): m_RandomNumbers(random_numbers), m_S0(model.getS0()) {
         double S0 = model.getS0();
@@ -56,7 +56,7 @@ public:
         double sigma2down = sigma_down*sigma_down;
         double dt = T / random_numbers.size();
         double dt_sqrt = sqrt(dt);
-        double epsilon = antithetic ? -1.0 : 1.0;
+        m_Epsilon = antithetic ? -1.0 : 1.0;
         //For use in the Euler method
         double St = S0;
         double St_up = S0*(1+h); //This way, h becomes scale independent.
@@ -66,7 +66,7 @@ public:
         //For use in the Explicit method
         double factor_explicit = 0.0, factor_explicit_sigma_up = 0.0, factor_explicit_sigma_down = 0.0;
         for(int i = 1; i <= random_numbers.size(); i++) {
-            auto rn = epsilon * random_numbers[i-1];
+            auto rn = m_Epsilon * random_numbers[i-1];
             switch(model.getSolver()) {
                 case Explicit:
                 {
@@ -110,6 +110,15 @@ public:
     }
     double get(unsigned int i) const {
         return m_Prices[i];
+    }
+    double front_random_number() const {
+        return m_RandomNumbers.size()>0 ? m_Epsilon * m_RandomNumbers.front() : NAN;
+    }
+    double random_number(unsigned int i) const {
+        return m_RandomNumbers.size()>i ? m_Epsilon * m_RandomNumbers[i] : NAN;
+    }
+    double back() const {
+        return back(None);
     }
     double back(Bump bump) const {
         switch (bump) {

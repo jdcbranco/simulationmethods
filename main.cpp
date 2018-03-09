@@ -36,15 +36,23 @@ int main() {
     //Asian call
     GFixedStrikeAsianCall asianCall(strike, 1.0);
     MCModel asianMcModel(asianCall, s0, sigma, r, 0.005, Explicit); //Optionally, can try Euler as well. Both work fine.
-    ModelResult asianMcModelResult = asianMcModel.simulate(simulator,100000, 100, SensitivityMethod::PathwiseDifferentiation);
+    ModelResult asianMcModelResultFD = asianMcModel.simulate(simulator,100000, 10, SensitivityMethod::FiniteDifference);
     cout << "-------------" << endl;
-    cout << "Asian Call with 100k paths and 100 steps: " << endl;
-    cout << asianMcModelResult;
+    cout << "Asian Call with 100k paths and 10 steps (Finite Differences): " << endl;
+    cout << asianMcModelResultFD;
+    ModelResult asianMcModelResultPD = asianMcModel.simulate(simulator,100000, 10, SensitivityMethod::PathwiseDifferentiation);
+    cout << "-------------" << endl;
+    cout << "Asian Call with 100k paths and 10 steps (Pathwise Differentiation): " << endl;
+    cout << asianMcModelResultPD;
+    ModelResult asianMcModelResultLR = asianMcModel.simulate(simulator,100000, 10, SensitivityMethod::LikelihoodRatio);
+    cout << "-------------" << endl;
+    cout << "Asian Call with 100k paths and 10 steps (Likelihood Ratio): " << endl;
+    cout << asianMcModelResultLR;
     //using control variate
     asianMcModel.define_control_variate([&](const Path &path) { return vanillaCall.payoff(path,None); }, bsModelResult.getPrice());
-    ModelResult asianMcModelResultWithControlVariate = asianMcModel.simulate(simulator,100000, 100);
+    ModelResult asianMcModelResultWithControlVariate = asianMcModel.simulate(simulator,100000, 10);
     cout << "-------------" << endl;
-    cout << "Asian Call with 100k paths and 100 steps and Control Variates: " << endl;
+    cout << "Asian Call with 100k paths and 10 steps and Control Variates: " << endl;
     cout << asianMcModelResultWithControlVariate;
 
     return 0;
