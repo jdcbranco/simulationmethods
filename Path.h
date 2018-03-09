@@ -35,6 +35,9 @@ private:
         }
         return exp(acc / input.size());
     }
+    double arithmetic_average(vector<double> input) const {
+        return input.size()>0 ? accumulate(input.begin(), input.end(), 0.0) / input.size() : NAN;
+    }
 protected:
     PathType m_PathType;
     double m_S0, m_Epsilon;
@@ -167,6 +170,20 @@ public:
                 return geometric_average(m_Prices_bump_sigma_up);
             case Sigma_Down:
                 return geometric_average(m_Prices_bump_sigma_down);
+        }
+    }
+    double arithmetic_average(Bump bump) const {
+        switch (bump) {
+            case None:
+                return arithmetic_average(m_Prices);
+            case Price_Up:
+                return arithmetic_average(m_Prices_bump_S_up);
+            case Price_Down:
+                return arithmetic_average(m_Prices_bump_S_down);
+            case Sigma_Up:
+                return arithmetic_average(m_Prices_bump_sigma_up);
+            case Sigma_Down:
+                return arithmetic_average(m_Prices_bump_sigma_down);
         }
     }
     friend ostream& operator<<(ostream& os, const Path &path) {
