@@ -10,8 +10,7 @@
 
 using namespace std;
 
-Normal normal(Standard);
-
+Normal normal(Custom);
 
 pair<double,double> mean_variance(vector<ModelResult> result){
     double sum = 0.0;

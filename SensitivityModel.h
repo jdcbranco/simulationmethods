@@ -249,8 +249,10 @@ namespace Greeks_by_LR {
                 double r = m_Model.getR();
                 double N = m_Model.getDim();
 
+                double var_a = T*v*v*((N+1.0)*(2.0*N+1)/(6.0*pow(N,2)));
+
                 double mu_a = T*(r-v*v/2)*((N+1.0)/(2.0*N));
-                double var_a = T*v*v*(1.0/3 - 1.0/(2*N) + 1.0/(6.0*N));
+                //double var_a = T*v*v*(1.0/3 - 1.0/(2*N) + 1.0/(6.0*N));
                 double sd_a = sqrt(var_a);
                 double d_mu_a = -v*T*(1.0/N +(N-1.0)/(2.0*N));
                 double d_sd_a = T*v*(1.0/N+(N-1.0)*(2.0*N-1)/(6.0*pow(N,2)))/sd_a;
