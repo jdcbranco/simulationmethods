@@ -505,15 +505,19 @@ class asian_option_geometric{
 				double sd_a = sqrt(var_a);
 				double d2 = (1.0/sd_a)*(log(S0/K)+mu_a);
 				double d1 = d2+sd_a;
-				double d_mu_a = -v*T*((N+1)/(2.0*N));
-				double d_sd_a = sqrt(T*(1.0/3 - 1/(2.0*N)+ 1/(6.0*pow(N,2))));
-				double d_d2 = (d_mu_a * sd_a - ( log(S0) + mu_a - log(K)) * d_sd_a)/var_a;
+                double d_mu_a = -T*((N+1.0)/(2.0*N))*(v);
+                double d_sd_a = T*((N+1.0)*(2.0*N+1)/(6.0*N*N))*v/sd_a;
+                double d_d2 =  (d_mu_a - d2*d_sd_a)/sd_a;
 				double d_d1 = d_d2 + d_sd_a;
-				double discount = exp(-r*T);
+            double f = S0*exp(mu_a+var_a/2);
+                double n1 = normalCDF(d1);
+                double d_n1 = normalPDF(d1);
+                double d_n2 = normalPDF(d2);
+                double discount = exp(-r*T);
+            
 				double vega = 0;
 				if(is_call){
-						vega =  discount*(S0 * exp( mu_a + pow(sd_a,2) / 2 ) * (( d_mu_a + sd_a * d_sd_a) * normalCDF( d1 )
-				                    + normalPDF(d1) * d_d1)- K * normalPDF( d2 ) * d_d2);
+                    vega =  discount*(f*(n1*(d_mu_a+sd_a*d_sd_a)+ d_n1*d_d1) - K*d_n2*d_d2);
 				}else{}
 				// record time
 				res.push_back(vega);
@@ -551,7 +555,7 @@ class asian_option_geometric{
     }
 
     // this function calculate the option price at time 0 and analytic statistics
-    vector<double> calculate_price(const string& method, double S0, double r, double v, unsigned int no_sims = 100000, bool display_results = true) {
+    vector<double> calculate_price(const string& method, double S0, double r, double v, unsigned int no_sims = 100000, bool display_results = false) {
         // return containeer
         vector<double> res;
 
@@ -591,7 +595,7 @@ class asian_option_geometric{
     }
 
     // this function calculate delta at time 0 and return analytic statistics
-    vector<double> calculate_delta(string method2, double S0, double r, double v, unsigned int no_sims = 100000, double h = 0.01, bool display_results = true ) {
+    vector<double> calculate_delta(string method2, double S0, double r, double v, unsigned int no_sims = 100000, double h = 0.01, bool display_results = false ) {
         // method is between euler/ emilistein
         // method2 is the user choice of between finite difference/ pathwise/ likelihood ratio
         vector<double> res;
@@ -717,44 +721,89 @@ class asian_option_geometric{
 };
 
 
-
 int main() {
 	int T = 1;
-	unsigned int N = 100;
+	unsigned int N = 1000;
 	double K = 100;
 	string method = "euler";
 	string type = "call";
 	double s0 = 100;
 	double r = 0.05;
 	double v = 0.4;
-	unsigned int no_sims = 100000;
-  double h = 0.01;
+	unsigned int no_sims = 10000000;
+    double h = 0.01;
+    int no_sims_lower = 1000;
+    int no_sims_upper = 110000;
+    int no_sims_step = 1000;
+    
+    // create an asian geometric average
+    asian_option_geometric opt("call",T,N,K);
+    opt.calculate_vega("analytic",s0,r,v,true);
+    opt.calculate_vega("pw",s0,r,v,no_sims,true);
+    opt.calculate_vega("fd",s0,r,v,no_sims,h,true);
+    opt.calculate_vega("lr",s0,r,v,no_sims,true);
+    
+    /*
+     // write files
+     ofstream myfile;
+     myfile.open("prices vs no_sim.csv");
+     ofstream myfile1;
+     myfile1.open("time vs no_sim.csv");
+     
+    for (unsigned int no_sims = no_sims_lower;no_sims<no_sims_upper;no_sims+=no_sims_step){
+        myfile<<no_sims<<", ";
+        // calculate prices
+        myfile<<opt.calculate_price("analytic",s0,r,v,no_sims,false)[0]<<", ";
+        myfile<<opt.calculate_price("mc analytic",s0,r,v,no_sims,false)[0]<<", ";
+        myfile<<opt.calculate_price("euler",s0,r,v,no_sims,false)[0]<<", ";
 
-	// create an asian geometric average
-	asian_option_geometric opt("call",T,N,K);
-	// calculate prices
-	opt.calculate_price("analytic",s0,r,v,no_sims,true);
-	opt.calculate_price("mc analytic",s0,r,v,no_sims,true);
-	opt.calculate_price("euler",s0,r,v,no_sims,true);
+        // calculate delta
+        myfile<<opt.calculate_delta("analytic",s0,r,v,false)[0]<<", ";
+        myfile<<opt.calculate_delta("pw",s0,r,v,no_sims,false)[0]<<", ";
+        myfile<<opt.calculate_delta("fd",s0,r,v,no_sims,h,false)[0]<<", ";
+        myfile<<opt.calculate_delta("lr",s0,r,v,no_sims,false)[0]<<", ";
 
-	// calculate delta
-	opt.calculate_delta("analytic",s0,r,v);
-	opt.calculate_delta("pw",s0,r,v);
-	opt.calculate_delta("fd",s0,r,v);
-	opt.calculate_delta("lr",s0,r,v);
-
-	// calculate gamma
-	opt.calculate_gamma("analytic",s0,r,v);
-	opt.calculate_gamma("lr",s0,r,v);
-	opt.calculate_gamma("fd",s0,r,v);
-
-	// calculate vega
-	opt.calculate_vega("analytic",s0,r,v);
-	opt.calculate_vega("pw",s0,r,v);
-	opt.calculate_vega("fd",s0,r,v);
-	opt.calculate_vega("lr",s0,r,v);
-
-
+        // calculate gamma
+        myfile<<opt.calculate_gamma("analytic",s0,r,v,false)[0]<<", ";
+        myfile<<opt.calculate_gamma("fd",s0,r,v,no_sims,h,false)[0]<<", ";
+        myfile<<opt.calculate_gamma("lr",s0,r,v,no_sims,false)[0]<<", ";
+        
+        // calculate vega
+        myfile<<opt.calculate_vega("analytic",s0,r,v,false)[0]<<", ";
+        myfile<<opt.calculate_vega("pw",s0,r,v,no_sims,false)[0]<<", ";
+        myfile<<opt.calculate_vega("fd",s0,r,v,no_sims,h,false)[0]<<", ";
+        myfile<<opt.calculate_vega("lr",s0,r,v,no_sims,false)[0]<<", ";
+        
+        // time
+        myfile1<<no_sims<<", ";
+        // calculate prices
+        myfile1<<opt.calculate_price("analytic",s0,r,v,no_sims,false)[1]<<", ";
+        myfile1<<opt.calculate_price("mc analytic",s0,r,v,no_sims,false)[1]<<", ";
+        myfile1<<opt.calculate_price("euler",s0,r,v,no_sims,false)[1]<<", ";
+        
+        // calculate delta
+        myfile1<<opt.calculate_delta("analytic",s0,r,v,false)[1]<<", ";
+        myfile1<<opt.calculate_delta("pw",s0,r,v,no_sims,false)[1]<<", ";
+        myfile1<<opt.calculate_delta("fd",s0,r,v,no_sims,h,false)[1]<<", ";
+        myfile1<<opt.calculate_delta("lr",s0,r,v,no_sims,false)[1]<<", ";
+        
+        // calculate gamma
+        myfile1<<opt.calculate_gamma("analytic",s0,r,v,false)[1]<<", ";
+        myfile1<<opt.calculate_gamma("fd",s0,r,v,no_sims,h,false)[1]<<", ";
+        myfile1<<opt.calculate_gamma("lr",s0,r,v,no_sims,false)[1]<<", ";
+        
+        // calculate vega
+        myfile1<<opt.calculate_vega("analytic",s0,r,v,false)[1]<<", ";
+        myfile1<<opt.calculate_vega("pw",s0,r,v,no_sims,false)[1]<<", ";
+        myfile1<<opt.calculate_vega("fd",s0,r,v,no_sims,h,false)[1]<<", ";
+        myfile1<<opt.calculate_vega("lr",s0,r,v,no_sims,false)[1]<<", ";
+        
+        myfile1<<endl;
+        myfile<<endl;
+    }
+    myfile.close();
+    myfile1.close();
+     */
 
 
 	return 0;
