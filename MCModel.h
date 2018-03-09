@@ -25,7 +25,7 @@ class MCModel: public Model<OPTION> {
     using Model<OPTION>::m_Solver;
 protected:
     vector<Path> simulation_vector;
-    vector<Path2> simulation_vector2;
+
     function<const double (const Path&)> control_variate;
     double control_variate_mean = 0.0;
     SensitivityMethod m_SensitivityMethod = SensitivityMethod::FiniteDifference;
@@ -81,28 +81,6 @@ public:
         this->control_variate_mean = control_variate_mean;
     }
 
-    ModelResult simulate2(Simulator simulator, SensitivityModel<OPTION> &sensitivityModel, int simulations, int path_size = 1) {
-        clock_t start = clock();
-        this->simulation_vector2.clear();
-        this->simulation_vector2 = simulator.simulate(drift,diffusion, m_Solver, m_S0, m_Option.getT(), m_h, simulations, path_size);
-        auto price = this->calcPrice();
-        auto delta = this->calcDelta(sensitivityModel);
-        auto gamma = this->calcGamma(sensitivityModel);
-        auto vega  = this->calcVega(sensitivityModel);
-        ModelResult result;
-        result.setModelType(ModelType::MonteCarlo);
-        result.setDeltaMethod(delta.second);
-        result.setGammaMethod(gamma.second);
-        result.setVegaMethod(vega.second);
-        result.setPrice(price.first);
-        result.setPriceVariance(price.second);
-        result.setDelta(delta.first);
-        result.setGamma(gamma.first);
-        result.setVega(vega.first);
-        result.setCalcTime((std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
-        return result;
-    }
-
     ModelResult simulate(Simulator simulator, SensitivityModel<OPTION> &sensitivityModel, int simulations, int path_size = 1) {
         clock_t start = clock();
         this->simulation_vector.clear();
@@ -113,6 +91,7 @@ public:
         auto vega  = this->calcVega(sensitivityModel);
         ModelResult result;
         result.setModelType(ModelType::MonteCarlo);
+        result.setSimulations(simulations);
         result.setDeltaMethod(delta.second);
         result.setGammaMethod(gamma.second);
         result.setVegaMethod(vega.second);

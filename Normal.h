@@ -17,7 +17,7 @@ protected:
     vector<double> custom_generate(unsigned int n);
     vector<double> standard_generate(unsigned int n);
 public:
-    Normal(const GeneratorType generatorType, double mean=0.0, double variance=1.0): Random(generatorType), generator(std::chrono::system_clock::now().time_since_epoch().count()) {
+    Normal(const GeneratorType generatorType, int seed = std::chrono::system_clock::now().time_since_epoch().count(),  double mean=0.0, double variance=1.0): Random(generatorType), generator(seed) {
         this->m_Mean = mean;
         this->m_Variance = variance;
     }

@@ -16,11 +16,12 @@ class ModelResult {
     template<typename T> friend class BSModel;
     template<typename T> friend class BSAsianModel;
     friend ostream& operator<<(ostream& os, const ModelResult &modelResult) {
-        os << "Price: " << (modelResult.getPrice()) << " / Variance: " << (modelResult.getPriceVariance()) << endl;
-        os << "Delta: " << (modelResult.getDelta()) << endl;
-        os << "Gamma: " << (modelResult.getGamma()) << endl;
-        os << "Vega: "  << (modelResult.getVega()) << endl;
-        os << "Calc Time: " << (modelResult.getCalcTime()) << " ms" << endl;
+        os << modelResult.getPrice() << " " << modelResult.getDelta() << " " << modelResult.getGamma() << " " << modelResult.getVega() << "; PriceVariance: " << modelResult.getPriceVariance() << " CalcTime: " << modelResult.getCalcTime() << " ms" << endl;
+//        os << "Price: " << (modelResult.getPrice()) << " / Variance: " << (modelResult.getPriceVariance()) << endl;
+//        os << "Delta: " << (modelResult.getDelta()) << endl;
+//        os << "Gamma: " << (modelResult.getGamma()) << endl;
+//        os << "Vega: "  << (modelResult.getVega()) << endl;
+//        os << "Calc Time: " << (modelResult.getCalcTime()) << " ms" << endl;
         return os;
     };
     double price;
@@ -29,10 +30,11 @@ class ModelResult {
     double vega;
     double price_variance;
     double calcTime;
+    ModelType modelType;
     SensitivityMethod deltaMethod;
     SensitivityMethod gammaMethod;
     SensitivityMethod vegaMethod;
-    ModelType modelType;
+    int simulations;
     bool antithetic;
 protected:
     void setPrice(double price) {
@@ -65,6 +67,9 @@ protected:
     void setModelType(ModelType modelType) {
         this->modelType = modelType;
     }
+    void setSimulations(int simulations) {
+        this->simulations = simulations;
+    }
     void setAntitheticVariate(bool antithetic) {
         this->antithetic = antithetic;
     }
@@ -80,6 +85,7 @@ public:
     SensitivityMethod getGammaMethod() const { return gammaMethod; }
     SensitivityMethod getVegaMethod() const { return vegaMethod; }
     ModelType getModelType() const { return modelType; }
+    int getSimulations() const { return this->simulations; }
     bool usesAntitheticVariates() const { return antithetic; }
 };
 

@@ -22,9 +22,7 @@ class VanillaCall: public VanillaOption {
 protected:
 public:
     VanillaCall(double strike, double tte):
-            VanillaOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(path.back(bump) - m_Strike, 0.0); })
-    {
-    }
+            VanillaOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(path.back(bump) - m_Strike, 0.0); }) {}
     double pathwise_delta(const Path &path, const ModelParams &params) const override {
         double P = payoff(path,None);
         return exp(-params.getR()*params.getT())* (P>0? (P+m_Strike)/params.getS0(): 0.0);
