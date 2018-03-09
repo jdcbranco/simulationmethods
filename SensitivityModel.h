@@ -104,9 +104,9 @@ namespace Greeks_by_PD {
         AsianCallSensitivityModel(const Model<AsianCall> &model): SensitivityModel(model, SensitivityMethod::PathwiseDifferentiation) {}
         double calcDelta(const Path &path) const override {
             double payoff = m_Model.getOption().payoff(path, None);
-            double S_T = path.back();
+            double A_T = path.getPathType()==GeometricAverage? path.back() : path.geometric_average(None);
             double S_0 = m_Model.getS0();
-            return payoff > 0 ? m_Model.discount(S_T / S_0) : 0.0;
+            return payoff > 0 ? m_Model.discount(A_T / S_0) : 0.0;
         }
         double calcGamma(const Path &path) const override {
             return NAN;
@@ -257,9 +257,9 @@ namespace Greeks_by_LR {
         };
 
         double calcVega(const Path &path) const override {
-            if(path.getPathType()==GeometricAverage) {
+            //if(path.getPathType()==GeometricAverage) {
                 double payoff = m_Model.getOption().payoff(path);
-                double A_T = path.back();
+                double A_T = path.getPathType()==GeometricAverage? path.back() : path.geometric_average(None);
                 double S_0 = m_Model.getS0();
                 double sigma = m_Model.getSigma();
                 double T = m_Model.getT();
@@ -284,19 +284,19 @@ namespace Greeks_by_LR {
                 //(z[i])*(d_mu_a+z[i]*d_sd_a)/sd_a - g
 
                 return m_Model.discount(payoff) * ((Z)*(d_mu_a+Z*d_sd_a)/sd_a - g);
-            } else {
-                double payoff = m_Model.getOption().payoff(path);
-                double S_0 = m_Model.getS0();
-                double sigma = m_Model.getSigma();
-                double T = m_Model.getT();
-                double dt = T / path.size();
-                double score = 0.0;
-                for (int i = 0; i < path.size(); i++) {
-                    double Z = path.random_number(i);
-                    score += ((Z * Z - 1.0) / sigma - Z * sqrt(dt));
-                }
-                return m_Model.discount(payoff) * score;
-            }
+//            } else {
+//                double payoff = m_Model.getOption().payoff(path);
+//                double S_0 = m_Model.getS0();
+//                double sigma = m_Model.getSigma();
+//                double T = m_Model.getT();
+//                double dt = T / path.size();
+//                double score = 0.0;
+//                for (int i = 0; i < path.size(); i++) {
+//                    double Z = path.random_number(i);
+//                    score += ((Z * Z - 1.0) / sigma - Z * sqrt(dt));
+//                }
+//                return m_Model.discount(payoff) * score;
+//            }
         };
     };
 }
