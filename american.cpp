@@ -204,18 +204,26 @@ vector<vector<double> > X_from_vec( vector<double> &x ) {
 vector<vector<double> > xTx_inverse( vector<double> &x ) {
     vector<vector<double> > res;
     
-    double M = x.size();
     double sum_1 = 0, sum_2 = 0, sum_3 = 0, sum_4 = 0;
     
-    for( unsigned int i = 0; i < M; i++ ) {
+    for( unsigned int i = 0; i < x.size(); i++ ) {
         sum_1 += x[i];
         sum_2 += pow(x[i],2);
         sum_3 += pow(x[i],3);
         sum_4 += pow(x[i],4);
+        
+        /*
+        cout << i << endl;
+        cout << x[i]        << " added to " << sum_1 << endl;
+        cout << pow(x[i],2) << " added to " << sum_2 << endl;
+        cout << pow(x[i],3) << " added to " << sum_3 << endl;
+        cout << pow(x[i],4) << " added to " << sum_4 << endl;
+        cout << endl;
+        */
     }
     
     vector<double> row;
-    row.push_back(M);
+    row.push_back(x.size());
     row.push_back(sum_1);
     row.push_back(sum_2);
     res.push_back(row);
@@ -232,6 +240,11 @@ vector<vector<double> > xTx_inverse( vector<double> &x ) {
     row.push_back(sum_4);
     res.push_back(row);
     
+    
+    
+    // cout << "   XTX = " << endl;
+    // print( res );
+    
     res = inverse_3x3(res);
     return res;
     
@@ -244,8 +257,8 @@ vector<vector<double> > xTy ( vector<double> &x, vector<double> &y ) {
     
     for( unsigned int i = 0; i < x.size(); i++ ) {
         sum_1 += y[i];
-        sum_2 += x[i] * y[i];
-        sum_3 += pow( x[i], 2 ) * y[i];
+        sum_2 += y[i] * x[i];
+        sum_3 += y[i] * pow( x[i], 2 );
     }
     
     row.push_back( sum_1 );
@@ -266,7 +279,12 @@ vector<double> a_estimate( vector<double> &x, vector<double> &y ) {
     vector<vector<double> > XTX, res, XTY;
     
     XTX = xTx_inverse( x );
+    // cout << "   (XTX)inverse = " << endl;
+    // print(XTX);
+    
     XTY = xTy(x,y);
+    // cout << "   XTY = " << endl;
+    // print(XTY);
     
     res = matrix_product(XTX,XTY);
     res = transpose(res);
@@ -274,8 +292,130 @@ vector<double> a_estimate( vector<double> &x, vector<double> &y ) {
     return res[0];
 }
 
+vector<double> delta_F( vector<double> &x, vector<double> &y, vector<double> &a ) {
+    vector<double> res(3,0);
+    
+    for( unsigned int j = 0; j <x.size(); j++ ) {
+        res[0] += 2 * ( y[j] - a[0] - a[1] * x[j] - a[2] * pow(x[j],2) ) * ( -1 );
+        res[1] += 2 * ( y[j] - a[0] - a[1] * x[j] - a[2] * pow(x[j],2) ) * ( -x[j] );
+        res[2] += 2 * ( y[j] - a[0] - a[1] * x[j] - a[2] * pow(x[j],2) ) * ( -x[j]*x[j] );
+    }
+    return res;
+}
+
+double F( vector<double> &x, vector<double> &y, vector<double> &a ) { \
+    double res = 0;
+    
+    for( unsigned int j = 0; j <x.size(); j++ ) {
+        res += pow(( y[j] - a[0] - a[1] * x[j] - a[2] * pow(x[j],2) ), 2);
+    }
+    return res;
+}
+
+double gd_gamma( vector<double> a_old, vector<double> a_new, vector<double> delta_old, vector<double> delta_new ) {
+    double numerator = 0, denomiator = 0;
+    
+    for( unsigned int i = 0; i < a_old.size(); i++ ) {
+        numerator += ( a_new[i] - a_old[i] ) * ( delta_new[i] - delta_old[i] );
+        denomiator += pow( delta_new[i] - delta_old[i], 2 );
+    }
+    //cout << numerator << endl;
+    //cout << denomiator << endl;
+    return abs( numerator / denomiator );
+}
+
+double norm( vector<double> x ) {
+    double sum = 0;
+    for( unsigned int i = 0; i <x.size(); i++ ) {
+        sum += pow(x[i],2);
+    }
+    return pow(sum,0.5);
+}
+
+vector<double> a_gd_estimate( vector<double> &x, vector<double> &y ) {
+    vector<double> a_old(3,100), a_new(3,0), delta_F_new(3,0), delta_F_old(3,0);
+    double gamma = 1, F_val_old, F_val_new;
+    bool done = false;
+    double no_iter = 1000000;
+    double tol = pow(10,-2);
+    double diff = 1;
+    int i = 0;
+    
+    hline(50);
+    
+    cout << "x = ";
+    print(x);
+    cout << "y = ";
+    print(y);
+    cout << endl;
+    
+    while( diff > tol ) {
+        // apply gradient desecnt with an initial gamma = 1
+        delta_F_new = delta_F( x,y, a_old );
+        F_val_old = F(x,y,a_old);
+        a_new[0] = a_old[0] - gamma * delta_F_new[0];
+        a_new[1] = a_old[1] - gamma * delta_F_new[1];
+        a_new[2] = a_old[2] - gamma * delta_F_new[2];
+        F_val_new = F(x,y,a_new);
+        
+        while( F_val_old < F_val_new ) {
+            // decrecase gamma by a factor of 10 if new F is not smaller than old F
+            // cout << "DECREASING gamma" << endl;
+            gamma = gamma * 0.5;
+            a_new[0] = a_old[0] - gamma * delta_F_new[0];
+            a_new[1] = a_old[1] - gamma * delta_F_new[1];
+            a_new[2] = a_old[2] - gamma * delta_F_new[2];
+            F_val_new = F(x,y,a_new);
+        }
+        
+        
+        //cout << "i = " << i << endl;
+        /*
+         cout << "   a_old = ";
+         print(a_old);
+         cout << "   F_old = " << F_val_old << endl;
+         cout << "   delta F = ";
+         print( delta_F_new );
+         cout << "   a_new = ";
+         print(a_new);
+         cout << "   F_new = " << F_val_new << endl;
+         */
+        //cout << "   gamma used = " << gamma << endl;
+        //cout << "   delta norm = " << norm(delta_F_new) << endl;
+        //cout << endl;
+        
+        diff = norm(delta_F_new);
+        // renew variables for next step
+        delta_F_old = delta_F_new;
+        a_old = a_new;
+        // gamma = abs( gd_gamma(a_old, a_new, delta_F_old, delta_F_new));
+        gamma = 1;
+        i += 1;
+        
+        if( i > no_iter ) {
+            break;
+        }
+    }
+    if( diff < tol) {
+        cout << "Required tolerance of delta norm " << tol << " reached at i = " << i << endl;
+        cout << endl;
+        done = true;
+        // break;
+    }
+    
+    
+    if(!done) {
+        cout << "Required tolerance has not been reached at i = " << no_iter << " still at " << norm(delta_F_new) << endl;
+    }
+    
+    
+    return a_new;
+}
+
 double solve_boundary( vector<double> &x, vector<double> &y, double K ) {
-    vector<double> a = a_estimate(x,y);
+    vector<double> a = a_estimate(x,y); // a_gd = a_gd_estimate(x,y);
+    
+    // print(a);
     
     if( pow(a[1]+1,2) -4*a[2]*(a[0]-K) >= 0 ) {
         return ( -(a[1]+1) + pow( pow(a[1]+1,2) -4*a[2]*(a[0]-K), 0.5) ) / ( 2 * a[2] );
@@ -318,22 +458,7 @@ class american_moving_average_asian {
                 
                 // calculate the rest of the path;
                 for (unsigned int j = 0; j < Z[0].size(); j++ ) {
-                    path.push_back( path[i] + r * path[i]*dt + v * path[i]*dt_sqr*Z[i][j] ); // + 0.5 * v * ( v * path[i] ) * dt * ( pow(Z[i][j],2) - 1 ) );
-                }
-                
-                S.push_back( path );
-            }
-        } else if ( icompare(method, "milstein") ) {
-            for( unsigned int i = 0; i < Z.size(); i++ ) {
-                // initialize the ith path
-                path.clear();
-                
-                // initialize price at time 0 = S0;
-                path.push_back( S0 );
-                
-                // calculate the rest of the path;
-                for (unsigned int j = 0; j < Z[0].size(); j++ ) {
-                    path.push_back( path[i] + r * path[i]*dt + v * path[i]*dt_sqr*Z[i][j]);
+                    path.push_back( path[j] + r * path[j]*dt + v * path[j]*dt_sqr*Z[i][j] );
                 }
                 
                 S.push_back( path );
@@ -349,6 +474,10 @@ class american_moving_average_asian {
         A.clear();
         
         vector<vector<double> > S = compute_S( method, S0, r, v );
+        /*
+        cout << "S = " << endl;
+        print(S);
+         */
         vector<double> path;
         double log_sum;
         
@@ -471,7 +600,18 @@ class american_moving_average_asian {
                 x.push_back( A[i][t_id] );
             }
             
-            b[t_id] = solve_boundary( x, y, K );
+            // cout << "t_id = " << t_id << endl;
+            double b_val = solve_boundary( x, y, K );
+            if( !isnan(b_val) ) {
+                b[t_id] = b_val;
+            } else {
+                cout << "ERROR: b has NAN at t_id = " << t_id << endl;
+                break;
+            }
+            // cout << "t_id = " << t_id << endl;
+            // cout << "   b = ";
+            // print(b);
+            // cout << endl;
         }
     }
     
@@ -484,14 +624,20 @@ class american_moving_average_asian {
         double dt = (double) T/N;
         
         compute_Z( no_sims );
+        // cout << "Z = " << endl;
+        // print(Z);
+        
         compute_A( method, S0, r, v); // if need to change parameter (i.e. finite difference greeks), can change at this step
+        // cout << "A = " << endl;
+        // print(A);
         
         compute_b(r);
+        // cout << "b = ";
+        // print(b);
+        
         
         // the payoff of immediate exercies at time 0
         double V_E = ( K - S0 ) * ( K - S0 >= 0 );
-        cout << "b = ";
-        print(b);
         
         // summing the payoff for holding the put option
         double sum = 0;
@@ -500,9 +646,9 @@ class american_moving_average_asian {
             path_res = V_detailed(i, 1, r);
             sum += path_res[0];
             if( path_res[2] < N ) {
-                cout << "Path " << i+1 << " early exercise at " << path_res[2] << endl;
+                // cout << "Path " << i+1 << " early exercise at " << path_res[2] << " with price " << abs(path_res[0]) * exp(-r*dt) << endl;
             } else {
-                cout << "Path " << i+1 << " exercise at last step" << endl;
+                // cout << "Path " << i+1 << " exercise at last step with price " << abs(path_res[0]) * exp(-r*dt) << endl;
             }
         }
         double V_C = exp(-r*dt) * sum / no_sims;
@@ -565,18 +711,18 @@ int main() {
     vector<double> a_vec, s_vec, x_vec, y_vec;
     string type = "call";
     int T = 1;
-    unsigned int N = 100;
+    unsigned int N = 10;
     double K = 100;
     double W = 2;
     double S0 = 100;
     double r = 0.05;
     double v = 0.4;
-    int no_sims = 100;
+    double no_sims = 100;
     
     srand(time(NULL));
     american_moving_average_asian opt(type,T,N,K,W);
-    
-    opt.calculate_price("euler", S0, r, v, no_sims, true);
-    
+    for( unsigned int i = 0; i < 5; i++ ) {
+        opt.calculate_price("euler", S0, r, v, no_sims*pow(10,i), true);
+    }
 }
 ;
