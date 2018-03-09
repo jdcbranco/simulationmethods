@@ -10,7 +10,7 @@
 
 using namespace std;
 
-Normal normal(Custom, 1);
+Normal normal(Standard);
 
 
 pair<double,double> mean_variance(vector<ModelResult> result){
@@ -19,11 +19,10 @@ pair<double,double> mean_variance(vector<ModelResult> result){
     double size = result.size();
     for (int i = 0; i < result.size(); ++i) {
         sum += result[i].getPrice();
-        sum_squares += pow(result[i].getPrice(),2.0);
     }
     double mean = sum / size;
     for (int i = 0; i < result.size(); ++i) {
-        sum_squares += pow(result[i].getPrice(),2.0) - mean;
+        sum_squares += pow(result[i].getPrice()- mean,2.0);
     }
 
     double variance = sum_squares / (size-1);
@@ -36,7 +35,7 @@ int main() {
     double sigma = 0.4;
     double r = 0.05;
 
-    vector<int> number_simulations = {1000,5000,10000,25000,50000,100000,200000, 300000, 400000 ,500000} ;
+    vector<int> number_simulations = {1000,5000,10000,25000,50000};//,100000,200000, 300000, 400000 ,500000} ;
     map<int,vector<ModelResult>> results;
     int number_runs = 100;
 
@@ -53,6 +52,7 @@ int main() {
     cout << "Black Scholes European Call: " << endl;
     cout << bsModelResult;
     for(int i: number_simulations) {
+        continue;
         vector<ModelResult> runs;
         //ModelResult mcModelResult = mcModel.simulate(simulator,i,mcModel.getSolver() == Explicit ? 1 : 5, SensitivityMethod::Greeks_by_LR);
         cout << "-------------" << endl;
@@ -65,33 +65,33 @@ int main() {
         }
         results[i] = runs;
     }
+    cout << "-------------" << endl;
+    cout << "Prices (Mean and Stdev) for 100 repeated runs" << endl;
     for(int i: number_simulations) {
         auto statistics = mean_variance(results[i]);
-        cout << "-------------" << endl;
-        cout << "Prices (Mean and Variance) for 100 repeated runs" << endl;
-        cout << "(" <<i<<") " << statistics.first << " " << statistics.second << endl;
+        cout << "(" <<i<<") " << statistics.first << " " << sqrt(statistics.second) << endl;
     }
     //Asian call
-    double path_size = 100;
-    AsianCall asianCall(strike, 1.0);
-    BSAsianCallModel bsAsianModel(asianCall, s0, sigma, r, path_size);
+    double path_size = 1, asian_dim = 100;
+    AsianCall asianCall(strike, 1.0, asian_dim);
+    BSAsianCallModel bsAsianModel(asianCall, s0, sigma, r, asian_dim);
     ModelResult bsAsianModelResult = bsAsianModel.calculate(); //This is tested and matches the existing result
     cout << "-------------" << endl;
     cout << "Black Scholes Asian Call: " << endl;
     cout << bsAsianModelResult;
-    MCModel<AsianCall> asianMcModel(asianCall, s0, sigma, r, 0.005, Explicit); //Optionally, can try Euler as well. Both work fine.
+    MCModel<AsianCall> asianMcModel(asianCall, s0, sigma, r, 0.005, ExplicitGeometricAverage); //Optionally, can try Euler as well. Both work fine.
     Greeks_by_FD::CentralDifferencesSensitivityModel<AsianCall> asian_call_fd(asianMcModel, 0.005);
     Greeks_by_PD::AsianCallSensitivityModel asian_call_pd(asianMcModel);
     Greeks_by_LR::AsianSensitivityModel<AsianCall> asian_call_lr(asianMcModel);
-    ModelResult asianMcModelResultFD = asianMcModel.simulate(simulator, asian_call_fd, 100000, path_size);
+    ModelResult asianMcModelResultFD = asianMcModel.simulate(simulator, asian_call_fd, 1000000, path_size);
     cout << "-------------" << endl;
     cout << "Asian Call with 100k paths and "<< path_size <<" steps (Finite Differences): " << endl;
     cout << asianMcModelResultFD;
-    ModelResult asianMcModelResultPD = asianMcModel.simulate(simulator, asian_call_pd, 100000, path_size);
+    ModelResult asianMcModelResultPD = asianMcModel.simulate(simulator, asian_call_pd, 1000000, path_size);
     cout << "-------------" << endl;
     cout << "Asian Call with 100k paths and "<< path_size <<" steps (Pathwise Differentiation): " << endl;
     cout << asianMcModelResultPD;
-    ModelResult asianMcModelResultLR = asianMcModel.simulate(simulator, asian_call_lr, 100000, path_size);
+    ModelResult asianMcModelResultLR = asianMcModel.simulate(simulator, asian_call_lr, 1000000, path_size);
     cout << "-------------" << endl;
     cout << "Asian Call with 100k paths and "<< path_size <<" steps (Likelihood Ratio): " << endl;
     cout << asianMcModelResultLR;

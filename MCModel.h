@@ -74,6 +74,7 @@ public:
     MCModel(OPTION &option, double S0, double sigma, double r, double h = 0.01, SDESolver sdeSolver = Explicit): Model<OPTION>(option, S0, sigma, r) {
         this->m_h = h;
         this->m_Solver = sdeSolver;
+        this->m_dim = option.getDim();
     }
 
     void define_control_variate(function<const double (const Path&)> control_variate, double control_variate_mean) {

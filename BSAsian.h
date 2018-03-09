@@ -112,12 +112,17 @@ public:
         double sd_a = sqrt(var_a);
         double d2 = (1.0/sd_a)*(log(S0/K)+mu_a);
         double d1 = d2+sd_a;
-        double d_mu_a = -v*T*((N+1)/(2.0*N));
-        double d_sd_a = sqrt(T*(1.0/3 - 1/(2.0*N)+ 1/(6.0*pow(N,2))));
-        double d_d2 = (d_mu_a * sd_a - ( log(S0) + mu_a - log(K)) * d_sd_a)/var_a;
+
+        double d_mu_a = -T*((N+1.0)/(2.0*N))*(v);
+        double d_sd_a = T*((N+1.0)*(2.0*N+1)/(6.0*N*N))*v/sd_a;
+        double d_d2 =  (d_mu_a - d2*d_sd_a)/sd_a;
         double d_d1 = d_d2 + d_sd_a;
-        double vega = discount(S0 * exp( mu_a + pow(sd_a,2) / 2 ) * (( d_mu_a + sd_a * d_sd_a) * normalCDF( d1 )
-                                                                     + normalPDF(d1) * d_d1)- K * normalPDF( d2 ) * d_d2);;
+        double f = S0*exp(mu_a+var_a/2);
+        double n1 = normalCDF(d1);
+        double d_n1 = normalPDF(d1);
+        double d_n2 = normalPDF(d2);
+
+        double vega = discount(f*(n1*(d_mu_a+sd_a*d_sd_a)+ d_n1*d_d1) - K*d_n2*d_d2);
 
         return pair<double,SensitivityMethod>(vega, SensitivityMethod::Analytical);
     };
