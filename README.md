@@ -32,7 +32,7 @@ You should be able to use any cmake binary you may have available.
 		cout << mcModelResult;
 	}
     //New code for Asian call
-    GFixedStrikeAsianCall asianCall(strike, 1.0);
+    AsianCall asianCall(strike, 1.0);
     MCModel asianMcModel(asianCall, 100.0, sigma, r, 0.005, Explicit); //Optionally, can try Euler as well. Both work fine.
     ModelResult asianMcModelResult = asianMcModel.simulate(simulator,100000, 100);
     cout << "-------------" << endl;

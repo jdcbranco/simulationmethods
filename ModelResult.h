@@ -11,10 +11,10 @@ enum class ModelType { MonteCarlo, Analytical };
 enum class SensitivityMethod { FiniteDifference, PathwiseDifferentiation, LikelihoodRatio, Analytical };
 
 class ModelResult {
-    friend class Model;
-    friend class MCModel;
-    friend class BSModel;
-    friend class BSAsianModel;
+    template<typename T> friend class Model;
+    template<typename T> friend class MCModel;
+    template<typename T> friend class BSModel;
+    template<typename T> friend class BSAsianModel;
     friend ostream& operator<<(ostream& os, const ModelResult &modelResult) {
         os << "Price: " << (modelResult.getPrice()) << " / Variance: " << (modelResult.getPriceVariance()) << endl;
         os << "Delta: " << (modelResult.getDelta()) << endl;

@@ -6,11 +6,11 @@
 
 using namespace std;
 
-class FixedStrikeAsianOption: public Option {
+class AsianOption: public Option {
 protected:
     double m_Strike;
 public:
-    FixedStrikeAsianOption(double strike, double tte, function<const double (const Path&, const Bump&)> payoff): m_Strike(strike), Option(payoff,tte) {
+    AsianOption(double strike, double tte, function<const double (const Path&, const Bump&)> payoff): m_Strike(strike), Option(payoff,tte) {
     }
     double getStrike() const {
         return m_Strike;
@@ -20,11 +20,11 @@ public:
 /*
  * Geometric Average (G) Fixed Strike Asian call.
  */
-class GFixedStrikeAsianCall: public FixedStrikeAsianOption {
+class AsianCall: public AsianOption {
 protected:
 public:
-    GFixedStrikeAsianCall(double strike, double tte):
-            FixedStrikeAsianOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(path.geometric_average(bump) - m_Strike, 0.0); })
+    AsianCall(double strike, double tte):
+            AsianOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(path.geometric_average(bump) - m_Strike, 0.0); })
     {
     }
     double pathwise_delta(const Path &path, const ModelParams &params) const override {
@@ -60,11 +60,11 @@ public:
 /*
  * Geometric Average (G) Fixed Strike (FS) Asian call.
  */
-class GFixedStrikeAsianPut: public FixedStrikeAsianOption {
+class AsianPut: public AsianOption {
 protected:
 public:
-    GFixedStrikeAsianPut(double strike, double tte):
-            FixedStrikeAsianOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(m_Strike - path.geometric_average(bump), 0.0); })
+    AsianPut(double strike, double tte):
+            AsianOption(strike, tte, [&](const Path &path, const Bump &bump) -> double { return max(m_Strike - path.geometric_average(bump), 0.0); })
     {
     }
 };

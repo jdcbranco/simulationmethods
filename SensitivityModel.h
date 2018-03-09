@@ -1,41 +1,45 @@
-//
-// Created by jdcbr on 3/9/2018.
-//
 
 #ifndef SIMULATIONMETHODS_SENSITIVITYMODEL_H
 #define SIMULATIONMETHODS_SENSITIVITYMODEL_H
 
-
 #include "Path.h"
 #include "Model.h"
 #include "Vanilla.h"
+#include "Asian.h"
 
+//TODO: Implement LR and PD for Asian
+
+/**
+ * Template class responsible for helping the greeks calculation during the Monte Carlo simulations.
+ * The sensitivity is calculated per path. The MCModel will then take expected value of the results from this class.
+ * @tparam OPTION
+ */
+template<class OPTION = Option>
 class SensitivityModel {
 protected:
-    Model &m_Model;
+    Model<OPTION> &m_Model;
     SensitivityMethod m_SensitivityMethod;
 public:
-    SensitivityModel(Model &model, SensitivityMethod sensitivityMethod): m_Model(model), m_SensitivityMethod(sensitivityMethod) {}
+    SensitivityModel(Model<OPTION> &model, SensitivityMethod sensitivityMethod): m_Model(model), m_SensitivityMethod(sensitivityMethod) {}
     SensitivityMethod getSensitivityMethod() const { return m_SensitivityMethod; }
     virtual double calcDelta(const Path &path) const = 0;
     virtual double calcGamma(const Path &path) const = 0;
     virtual double calcVega(const Path &path) const = 0;
 };
 
-namespace FiniteDifferences {
-    class CentralDifferencesSensitivityModel: public SensitivityModel {
+namespace Greeks_by_FD {
+    template<class OPTION>
+    class CentralDifferencesSensitivityModel: public SensitivityModel<OPTION> {
     public:
-        CentralDifferencesSensitivityModel(Model &model): SensitivityModel(model, SensitivityMethod::FiniteDifference) {
-            
-        }
+        CentralDifferencesSensitivityModel(Model<OPTION> &model): SensitivityModel<OPTION>(model, SensitivityMethod::FiniteDifference) {}
+        //TODO: Implement by migrating existing code to here
     };
 }
 
-namespace PathwiseDifferentiation {
-    class VanillaCallSensitivityModel: public SensitivityModel {
+namespace Greeks_by_PD {
+    class VanillaCallSensitivityModel: public SensitivityModel<VanillaCall> {
     public:
-        VanillaCallSensitivityModel(Model &model): SensitivityModel(model, SensitivityMethod::PathwiseDifferentiation) {
-        }
+        VanillaCallSensitivityModel(Model<VanillaCall> &model): SensitivityModel(model, SensitivityMethod::PathwiseDifferentiation) {}
         double calcDelta(const Path &path) const override {
             double payoff = m_Model.getOption().payoff(path);
             double S_T = path.back();
@@ -58,15 +62,16 @@ namespace PathwiseDifferentiation {
     };
 }
 
-namespace LikelihoodRatio {
+namespace Greeks_by_LR {
     /**
      * Can be used for options with payoffs that depend only on the terminal price, whose SDE must have an Explicit solution
      * and thus whose paths have only the terminal value.
      */
-    class VanillaSensitivityModel: public SensitivityModel {
+    template<class OPTION = VanillaOption>
+    class VanillaSensitivityModel: public SensitivityModel<OPTION> {
+        using SensitivityModel<OPTION>::m_Model;
     public:
-        VanillaSensitivityModel(Model &model): SensitivityModel(model, SensitivityMethod::LikelihoodRatio) {
-        }
+        VanillaSensitivityModel(Model<OPTION> &model): SensitivityModel<OPTION>(model, SensitivityMethod::LikelihoodRatio) {}
         double calcDelta(const Path &path) const override {
             if(path.size()>1) return NAN; //We don't support non-Explicit SDE (path size > 1)
             double payoff = m_Model.getOption().payoff(path);
@@ -95,11 +100,9 @@ namespace LikelihoodRatio {
             double sigma = m_Model.getSigma();
             double T = m_Model.getT();
             double Z = path.front_random_number();
-            return m_Model.discount(payoff) * (Z*Z-1.0)/sigma - Z * sqrt(T);
+            return m_Model.discount(payoff) * ((Z*Z-1.0)/sigma - Z * sqrt(T));
         };
     };
 }
-
-
 
 #endif //SIMULATIONMETHODS_SENSITIVITYMODEL_H

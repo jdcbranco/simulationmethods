@@ -9,11 +9,12 @@
 
 using namespace std;
 
-class BSModel: public Model {
+template<class OPTION = VanillaOption>
+class BSModel: public Model<OPTION> {
 protected:
     double m_K;
 public:
-    BSModel(VanillaOption &option, double S0, double sigma, double r): Model(option,S0,sigma,r), m_K(option.getStrike()) {}
+    BSModel(OPTION &option, double S0, double sigma, double r): Model<OPTION>(option,S0,sigma,r), m_K(option.getStrike()) {}
     ModelResult calculate() {
         clock_t start = clock();
         auto price_and_variance = this->calcPrice();
@@ -39,7 +40,7 @@ public:
  * Black Scholes model for European call options.
  * Based on original version from european.cpp
  */
-class BSCallModel: public BSModel {
+class BSCallModel: public BSModel<VanillaCall> {
 public:
     BSCallModel(VanillaCall &call, double S0, double sigma, double r): BSModel(call,S0,sigma,r) {}
     pair<double,double> calcPrice() const override {
@@ -69,7 +70,7 @@ public:
  * Black Scholes model for European put options.
  */
 //TODO Implement this class
-class BSPutModel: public BSModel {
+class BSPutModel: public BSModel<VanillaPut> {
 public:
     BSPutModel(VanillaPut &put, double S0, double sigma, double r): BSModel(put,S0,sigma,r) {}
 };

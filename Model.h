@@ -13,18 +13,23 @@ inline double normalCDF(double value) {
     return 0.5 * erfc(-value / sqrt(2));
 }
 
+inline double normalPDF(double value) {
+    return (1 / sqrt(2 * M_PI)) * exp(-0.5 * pow(value, 2));
+}
+
 /**
  * Model assumptions for now are:
  * Constant interest rate
  * Constant volatility
  * One underlying + One risk free interest rate product
  */
+template<class OPTION = Option>
 class Model: public ModelParams {
 protected:
-    Option &m_Option;
+    OPTION &m_Option;
 public:
-    Model(Option &option, double S0, double sigma, double r): ModelParams(S0,sigma,r), m_Option(option) {}
-    Option& getOption() const { return m_Option; }
+    Model(OPTION &option, double S0, double sigma, double r): ModelParams(S0,sigma,r), m_Option(option) {}
+    OPTION& getOption() const { return m_Option; }
     double getT() const override {
         return m_Option.getT();
     }
