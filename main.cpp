@@ -23,6 +23,7 @@ int main() {
     VanillaCall vanillaCall(strike, 1.0);
     BSCallModel bsModel(vanillaCall, s0, sigma, r);
     MCModel<VanillaCall> mcModel(vanillaCall, s0, sigma, r, 0.005, Explicit);
+    Greeks_by_FD::CentralDifferencesSensitivityModel<VanillaCall> vanilla_call_fd(mcModel,0.005);
     Greeks_by_PD::VanillaCallSensitivityModel vanilla_call_pd(mcModel);
     Greeks_by_LR::VanillaSensitivityModel<VanillaCall> vanilla_call_lr(mcModel);
     Simulator simulator(normal,true); //True=Antithetic
@@ -31,7 +32,7 @@ int main() {
     cout << "Black Scholes European Call: " << endl;
     cout << bsModelResult;
     for(int i: number_simulations) {
-        ModelResult mcModelResult = mcModel.simulate(simulator,vanilla_call_lr,i,mcModel.getSolver() == Explicit ? 1 : 5);
+        ModelResult mcModelResult = mcModel.simulate(simulator,vanilla_call_fd,i,mcModel.getSolver() == Explicit ? 1 : 5);
         //ModelResult mcModelResult = mcModel.simulate(simulator,i,mcModel.getSolver() == Explicit ? 1 : 5, SensitivityMethod::Greeks_by_LR);
         cout << "-------------" << endl;
         cout << "Simulations: " << i << endl;
@@ -46,15 +47,18 @@ int main() {
     cout << "Black Scholes Asian Call: " << endl;
     cout << bsAsianModelResult;
     MCModel<AsianCall> asianMcModel(asianCall, s0, sigma, r, 0.005, Explicit); //Optionally, can try Euler as well. Both work fine.
-    ModelResult asianMcModelResultFD = asianMcModel.simulate(simulator,100000, path_size, SensitivityMethod::FiniteDifference);
+    Greeks_by_FD::CentralDifferencesSensitivityModel<AsianCall> asian_call_fd(asianMcModel, 0.005);
+    Greeks_by_PD::AsianCallSensitivityModel asian_call_pd(asianMcModel);
+    Greeks_by_LR::AsianSensitivityModel<AsianCall> asian_call_lr(asianMcModel);
+    ModelResult asianMcModelResultFD = asianMcModel.simulate(simulator, asian_call_fd, 100000, path_size);
     cout << "-------------" << endl;
     cout << "Asian Call with 100k paths and "<< path_size <<" steps (Finite Differences): " << endl;
     cout << asianMcModelResultFD;
-    ModelResult asianMcModelResultPD = asianMcModel.simulate(simulator,100000, path_size, SensitivityMethod::PathwiseDifferentiation);
+    ModelResult asianMcModelResultPD = asianMcModel.simulate(simulator, asian_call_pd, 100000, path_size);
     cout << "-------------" << endl;
     cout << "Asian Call with 100k paths and "<< path_size <<" steps (Pathwise Differentiation): " << endl;
     cout << asianMcModelResultPD;
-    ModelResult asianMcModelResultLR = asianMcModel.simulate(simulator,100000, path_size, SensitivityMethod::LikelihoodRatio);
+    ModelResult asianMcModelResultLR = asianMcModel.simulate(simulator, asian_call_lr, 100000, path_size);
     cout << "-------------" << endl;
     cout << "Asian Call with 100k paths and "<< path_size <<" steps (Likelihood Ratio): " << endl;
     cout << asianMcModelResultLR;
