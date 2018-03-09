@@ -21,7 +21,7 @@ vector<double> Normal::standard_generate(unsigned int n) {
         double random_number = distribution(generator);
         rand_numbers.push_back(random_number);
     }
-    return rand_numbers;
+    return move(rand_numbers);
 }
 
 //Implementation based on custom algorithm based on lecture notes, contributed by Stanley and Edgard
@@ -49,5 +49,5 @@ vector<double> Normal::custom_generate(unsigned int n){
         v.pop_back();
     }
 
-    return v;
+    return move(v);
 }

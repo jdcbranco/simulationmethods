@@ -1,4 +1,6 @@
 #include <iostream>
+#include <map>
+
 #include "Normal.h"
 #include "Vanilla.h"
 #include "MCModel.h"
@@ -8,7 +10,25 @@
 
 using namespace std;
 
-Normal normal(Standard);
+Normal normal(Custom, 1);
+
+
+pair<double,double> mean_variance(vector<ModelResult> result){
+    double sum = 0.0;
+    double sum_squares = 0.0;
+    double size = result.size();
+    for (int i = 0; i < result.size(); ++i) {
+        sum += result[i].getPrice();
+        sum_squares += pow(result[i].getPrice(),2.0);
+    }
+    double mean = sum / size;
+    for (int i = 0; i < result.size(); ++i) {
+        sum_squares += pow(result[i].getPrice(),2.0) - mean;
+    }
+
+    double variance = sum_squares / (size-1);
+    return pair<double,double>(mean,variance);
+}
 
 int main() {
     double s0 = 100.0;
@@ -16,8 +36,9 @@ int main() {
     double sigma = 0.4;
     double r = 0.05;
 
-    vector<int> number_simulations = {1000,5000,10000,25000,50000,100000,200000,500000} ;
-    //vector<int> number_simulations = {1000,5000};
+    vector<int> number_simulations = {1000,5000,10000,25000,50000,100000,200000, 300000, 400000 ,500000} ;
+    map<int,vector<ModelResult>> results;
+    int number_runs = 100;
 
     //European call
     VanillaCall vanillaCall(strike, 1.0);
@@ -32,12 +53,23 @@ int main() {
     cout << "Black Scholes European Call: " << endl;
     cout << bsModelResult;
     for(int i: number_simulations) {
-        continue;
-        ModelResult mcModelResult = mcModel.simulate(simulator,vanilla_call_fd,i,mcModel.getSolver() == Explicit ? 1 : 5);
+        vector<ModelResult> runs;
         //ModelResult mcModelResult = mcModel.simulate(simulator,i,mcModel.getSolver() == Explicit ? 1 : 5, SensitivityMethod::Greeks_by_LR);
         cout << "-------------" << endl;
         cout << "Simulations: " << i << endl;
-        cout << mcModelResult;
+        int nr = i>=100000? 10: number_runs;
+        for(int j = 0; j<nr; j++) {
+            ModelResult mcModelResult = mcModel.simulate(simulator,vanilla_call_fd,i,mcModel.getSolver() == Explicit ? 1 : 5);
+            runs.push_back(mcModelResult);
+            cout << "(" << j << ") " << mcModelResult;
+        }
+        results[i] = runs;
+    }
+    for(int i: number_simulations) {
+        auto statistics = mean_variance(results[i]);
+        cout << "-------------" << endl;
+        cout << "Prices (Mean and Variance) for 100 repeated runs" << endl;
+        cout << "(" <<i<<") " << statistics.first << " " << statistics.second << endl;
     }
     //Asian call
     double path_size = 100;
