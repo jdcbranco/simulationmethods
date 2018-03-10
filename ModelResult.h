@@ -24,7 +24,7 @@ class ModelResult {
                 os << "AN ";
                 break;
         }
-        switch(modelResult.deltaMethod) {
+        switch(modelResult.greeksMethod) {
             case SensitivityMethod::Analytical:
                 os << "AN ";
                 break;
@@ -41,7 +41,14 @@ class ModelResult {
         os << (modelResult.usesControlVariate()? "CV:TRUE " : "CV:FALSE ");
         os << modelResult.getPriceVariance() << " ";
         os << sqrt(modelResult.getPriceVariance()) << " ";
-        os << modelResult.getPrice() << " " << modelResult.getDelta() << " " << modelResult.getGamma() << " " << modelResult.getVega() << " " << modelResult.getCalcTime() << endl;
+        os << modelResult.getPrice() << " ";
+        os << modelResult.getDelta() << " ";
+        os << modelResult.getGamma() << " ";
+        os << modelResult.getVega() << " ";
+        os << modelResult.getDeltaVariance() << " ";
+        os << modelResult.getGammaVariance() << " ";
+        os << modelResult.getVegaVariance() << " ";
+        os << modelResult.getCalcTime() << endl;
         return os;
     };
     double price;
@@ -49,11 +56,12 @@ class ModelResult {
     double gamma;
     double vega;
     double price_variance;
+    double delta_variance;
+    double gamma_variance;
+    double vega_variance;
     double calcTime;
     ModelType modelType;
-    SensitivityMethod deltaMethod;
-    SensitivityMethod gammaMethod;
-    SensitivityMethod vegaMethod;
+    SensitivityMethod greeksMethod;
     int simulations;
     bool antithetic;
     bool control_variate;
@@ -67,23 +75,26 @@ protected:
     void setDelta(double delta) {
         this->delta = delta;
     }
+    void setDeltaVariance(double delta_variance) {
+        this->delta_variance = delta_variance;
+    }
     void setGamma(double gamma) {
         this->gamma = gamma;
+    }
+    void setGammaVariance(double gamma_variance) {
+        this->gamma_variance = gamma_variance;
     }
     void setVega(double vega) {
         this->vega = vega;
     }
+    void setVegaVariance(double vega_variance) {
+        this->vega_variance = vega_variance;
+    }
     void setCalcTime(double calcTime) {
         this->calcTime = calcTime;
     }
-    void setDeltaMethod(SensitivityMethod deltaMethod) {
-        this->deltaMethod = deltaMethod;
-    }
-    void setGammaMethod(SensitivityMethod gammaMethod) {
-        this->gammaMethod = gammaMethod;
-    }
-    void setVegaMethod(SensitivityMethod vegaMethod) {
-        this->vegaMethod = vegaMethod;
+    void setGreeksMethod(SensitivityMethod deltaMethod) {
+        this->greeksMethod = deltaMethod;
     }
     void setModelType(ModelType modelType) {
         this->modelType = modelType;
@@ -104,10 +115,11 @@ public:
     double getGamma() const { return this->gamma; }
     double getVega() const { return this->vega; }
     double getPriceVariance() const { return this->price_variance; }
+    double getDeltaVariance() const { return this->delta_variance; }
+    double getGammaVariance() const { return this->gamma_variance; }
+    double getVegaVariance() const { return this->vega_variance; }
     double getCalcTime() const { return this->calcTime; }
-    SensitivityMethod getDeltaMethod() const { return deltaMethod; }
-    SensitivityMethod getGammaMethod() const { return gammaMethod; }
-    SensitivityMethod getVegaMethod() const { return vegaMethod; }
+    SensitivityMethod getGreeksMethod() const { return greeksMethod; }
     ModelType getModelType() const { return modelType; }
     int getSimulations() const { return this->simulations; }
     bool usesAntitheticVariates() const { return antithetic; }

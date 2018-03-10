@@ -13,7 +13,7 @@ using namespace std;
 
 Normal normal(Standard);
 
-pair<double,double> mean_variance(vector<ModelResult> result){
+pair<double,double> price_mean_variance(vector<ModelResult> result){
     double sum = 0.0;
     double sum_squares = 0.0;
     double size = result.size();
@@ -23,6 +23,44 @@ pair<double,double> mean_variance(vector<ModelResult> result){
     double mean = sum / size;
     for (int i = 0; i < result.size(); ++i) {
         sum_squares += pow(result[i].getPrice()- mean,2.0);
+    }
+
+    double variance = sum_squares / (size-1);
+    return pair<double,double>(mean,variance);
+}
+
+enum class Greek { Delta, Gamma, Vega };
+
+pair<double,double> greeks_mean_variance(vector<ModelResult> result, Greek greek){
+    double sum = 0.0;
+    double sum_squares = 0.0;
+    double size = result.size();
+    for (int i = 0; i < result.size(); ++i) {
+        switch (greek) {
+            case Greek::Delta:
+                sum += result[i].getDelta();
+                break;
+            case Greek::Gamma:
+                sum += result[i].getGamma();
+                break;
+            case Greek::Vega:
+                sum += result[i].getVega();
+                break;
+        }
+    }
+    double mean = sum / size;
+    for (int i = 0; i < result.size(); ++i) {
+        switch (greek) {
+            case Greek::Delta:
+                sum_squares += pow(result[i].getDelta()- mean,2.0);
+                break;
+            case Greek::Gamma:
+                sum_squares += pow(result[i].getGamma()- mean,2.0);
+                break;
+            case Greek::Vega:
+                sum_squares += pow(result[i].getVega()- mean,2.0);
+                break;
+        }
     }
 
     double variance = sum_squares / (size-1);
@@ -65,9 +103,27 @@ int main() {
         results[i] = runs;
     }
     cout << "-------------" << endl;
-    cout << "Prices (Mean and Stdev) for 100 repeated runs" << endl;
+    cout << "Prices (Mean and Stdev) for "<<number_runs<< " repeated runs" << endl;
     for(int i: number_simulations) {
-        auto statistics = mean_variance(results[i]);
+        auto statistics = price_mean_variance(results[i]);
+        cout << "(" <<i<<") " << statistics.first << " " << sqrt(statistics.second) << endl;
+    }
+    cout << "-------------" << endl;
+    cout << "Delta (Mean and Stdev) for "<<number_runs<<" repeated runs" << endl;
+    for(int i: number_simulations) {
+        auto statistics = greeks_mean_variance(results[i], Greek::Delta);
+        cout << "(" <<i<<") " << statistics.first << " " << sqrt(statistics.second) << endl;
+    }
+    cout << "-------------" << endl;
+    cout << "Gamma (Mean and Stdev) for "<<number_runs<<" repeated runs" << endl;
+    for(int i: number_simulations) {
+        auto statistics = greeks_mean_variance(results[i], Greek::Gamma);
+        cout << "(" <<i<<") " << statistics.first << " " << sqrt(statistics.second) << endl;
+    }
+    cout << "-------------" << endl;
+    cout << "Vega (Mean and Stdev) for "<<number_runs<<" repeated runs" << endl;
+    for(int i: number_simulations) {
+        auto statistics = greeks_mean_variance(results[i], Greek::Vega);
         cout << "(" <<i<<") " << statistics.first << " " << sqrt(statistics.second) << endl;
     }
     //Asian call

@@ -97,34 +97,35 @@ public:
         result.setAntitheticVariate(simulator.is_Antithetic());
         result.setControlVariate(control_variate?true:false);
         result.setSimulations(simulations);
-        result.setDeltaMethod(delta.second);
-        result.setGammaMethod(gamma.second);
-        result.setVegaMethod(vega.second);
+        result.setGreeksMethod(sensitivityModel.getSensitivityMethod());
         result.setPrice(price.first);
         result.setPriceVariance(price.second);
         result.setDelta(delta.first);
+        result.setDeltaVariance(delta.second);
         result.setGamma(gamma.first);
+        result.setGammaVariance(gamma.second);
         result.setVega(vega.first);
+        result.setVegaVariance(vega.second);
         result.setCalcTime((std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
         return result;
     }
 
     pair<double,double> calcPrice() const override;
-    pair<double,SensitivityMethod> calcDelta() const override {
+    pair<double,double> calcDelta() const override {
         Greeks_by_FD::CentralDifferencesSensitivityModel<OPTION> fd_method(*this,this->m_h);
         return calcDelta(fd_method);
     };
-    pair<double,SensitivityMethod> calcGamma() const override {
+    pair<double,double> calcGamma() const override {
         Greeks_by_FD::CentralDifferencesSensitivityModel<OPTION> fd_method(*this,this->m_h);
         return calcGamma(fd_method);
     };
-    pair<double,SensitivityMethod> calcVega() const override {
+    pair<double,double> calcVega() const override {
         Greeks_by_FD::CentralDifferencesSensitivityModel<OPTION> fd_method(*this,this->m_h);
         return calcVega(fd_method);
     };
-    pair<double,SensitivityMethod> calcDelta(SensitivityModel<OPTION> &sensitivityModel) const;
-    pair<double,SensitivityMethod> calcGamma(SensitivityModel<OPTION> &sensitivityModel) const;
-    pair<double,SensitivityMethod> calcVega(SensitivityModel<OPTION> &sensitivityModel) const;
+    pair<double,double> calcDelta(SensitivityModel<OPTION> &sensitivityModel) const;
+    pair<double,double> calcGamma(SensitivityModel<OPTION> &sensitivityModel) const;
+    pair<double,double> calcVega(SensitivityModel<OPTION> &sensitivityModel) const;
 };
 
 template<class OPTION> pair<double,double> MCModel<OPTION>::calcPrice() const {
@@ -161,33 +162,48 @@ template<class OPTION> pair<double,double> MCModel<OPTION>::calcPrice() const {
 }
 
 template<class OPTION>
-pair<double,SensitivityMethod> MCModel<OPTION>::calcDelta(SensitivityModel<OPTION> &sensitivityModel) const {
-    double sum = 0.0;
+pair<double,double> MCModel<OPTION>::calcDelta(SensitivityModel<OPTION> &sensitivityModel) const {
+    double sum = 0.0, sum_of_squares = 0.0;
     double size = simulation_vector.size();
+    double divisor = sensitivityModel.deltaDivisor();
     for (auto path : simulation_vector) {
-        sum += sensitivityModel.calcDelta(path);
+        double greek = sensitivityModel.calcDelta(path);
+        sum += greek;
+        sum_of_squares += greek*greek/(divisor*divisor);
     }
-    return pair<double,SensitivityMethod>(size>0? (sum/size)/sensitivityModel.deltaDivisor(): NAN, sensitivityModel.getSensitivityMethod());
+    double estimate = (sum/size)/divisor;
+    double variance = ((sum_of_squares / size) - estimate*estimate) / size;
+    return pair<double,double>(size>0? estimate: NAN, variance);
 };
 
 template<class OPTION>
-pair<double,SensitivityMethod> MCModel<OPTION>::calcGamma(SensitivityModel<OPTION> &sensitivityModel) const {
-    double sum = 0.0;
+pair<double,double> MCModel<OPTION>::calcGamma(SensitivityModel<OPTION> &sensitivityModel) const {
+    double sum = 0.0, sum_of_squares = 0.0;
     double size = simulation_vector.size();
+    double divisor = sensitivityModel.gammaDivisor();
     for (auto path : simulation_vector) {
-        sum += sensitivityModel.calcGamma(path);
+        double greek = sensitivityModel.calcGamma(path);
+        sum += greek;
+        sum_of_squares += greek*greek/(divisor*divisor);
     }
-    return pair<double,SensitivityMethod>(size>0? (sum/size)/sensitivityModel.gammaDivisor(): NAN, sensitivityModel.getSensitivityMethod());
+    double estimate = (sum/size)/divisor;
+    double variance = ((sum_of_squares / size) - estimate*estimate) / size;
+    return pair<double,double>(size>0? estimate: NAN, variance);
 };
 
 template<class OPTION>
-pair<double,SensitivityMethod> MCModel<OPTION>::calcVega(SensitivityModel<OPTION> &sensitivityModel) const {
-    double sum = 0.0;
+pair<double,double> MCModel<OPTION>::calcVega(SensitivityModel<OPTION> &sensitivityModel) const {
+    double sum = 0.0, sum_of_squares = 0.0;
     double size = simulation_vector.size();
+    double divisor = sensitivityModel.vegaDivisor();
     for (auto path : simulation_vector) {
-        sum += sensitivityModel.calcVega(path);
+        double greek = sensitivityModel.calcVega(path);
+        sum += greek;
+        sum_of_squares += greek*greek/(divisor*divisor);
     }
-    return pair<double,SensitivityMethod>(size>0? (sum/size)/sensitivityModel.vegaDivisor(): NAN, sensitivityModel.getSensitivityMethod());
+    double estimate = (sum/size)/divisor;
+    double variance = ((sum_of_squares / size) - estimate*estimate) / size;
+    return pair<double,double>(size>0? estimate: NAN, variance);
 };
 
 #endif //SIMULATIONMETHODS_MCMODEL_H

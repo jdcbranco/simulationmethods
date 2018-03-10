@@ -16,20 +16,23 @@ public:
     BSAsianModel(OPTION &option, double S0, double sigma, double r, double path_size): Model<OPTION>(option,S0,sigma,r), m_K(option.getStrike()), m_PathSize(path_size) {}
     ModelResult calculate() {
         clock_t start = clock();
-        auto price_and_variance = this->calcPrice();
+        auto price = this->calcPrice();
         auto delta = this->calcDelta();
         auto gamma = this->calcGamma();
         auto vega  = this->calcVega();
         ModelResult result;
         result.setModelType(ModelType::Analytical);
-        result.setDeltaMethod(delta.second);
-        result.setGammaMethod(gamma.second);
-        result.setVegaMethod(vega.second);
-        result.setPrice(price_and_variance.first);
-        result.setPriceVariance(price_and_variance.second);
+        result.setAntitheticVariate(false);
+        result.setControlVariate(false);
+        result.setGreeksMethod(SensitivityMethod::Analytical);
+        result.setPrice(price.first);
+        result.setPriceVariance(price.second);
         result.setDelta(delta.first);
+        result.setDeltaVariance(delta.second);
         result.setGamma(gamma.first);
+        result.setGammaVariance(gamma.second);
         result.setVega(vega.first);
+        result.setVegaVariance(vega.second);
         result.setCalcTime((std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
         return result;
     }
@@ -59,7 +62,7 @@ public:
 
         return pair<double,double>(price,0.0);
     };
-    pair<double,SensitivityMethod> calcDelta() const override {
+    pair<double,double> calcDelta() const override {
         double T = m_Option.getT();
         double r = m_r;
         double v = m_Sigma;
@@ -75,9 +78,9 @@ public:
         double d1 = d2+sd_a;
         double delta = discount(exp(mu_a+0.5*var_a)*(normalCDF(d1)+normalPDF(d1)/sd_a) - K*normalPDF(d2)/(sd_a*S0));
 
-        return pair<double,SensitivityMethod>(delta,SensitivityMethod::Analytical);
+        return pair<double,double>(delta, 0.0);
     };
-    pair<double,SensitivityMethod> calcGamma() const override {
+    pair<double,double> calcGamma() const override {
         double T = m_Option.getT();
         double r = m_r;
         double v = m_Sigma;
@@ -96,9 +99,9 @@ public:
                                  + exp( mu_a+ pow(sd_a,2)) / sd_a  * ( -d1 ) * normalPDF(d1) * d_d
                                  - (-d2 * d_d * K * normalPDF(d2) * sd_a * S0 - K * normalPDF(d2) * sd_a )/pow(sd_a*S0,2));
 
-        return pair<double,SensitivityMethod>(gamma, SensitivityMethod::Analytical);
+        return pair<double,double>(gamma, 0.0);
     };
-    pair<double,SensitivityMethod> calcVega() const override {
+    pair<double,double> calcVega() const override {
         double T = m_Option.getT();
         double r = m_r;
         double v = m_Sigma;
@@ -124,7 +127,7 @@ public:
 
         double vega = discount(f*(n1*(d_mu_a+sd_a*d_sd_a)+ d_n1*d_d1) - K*d_n2*d_d2);
 
-        return pair<double,SensitivityMethod>(vega, SensitivityMethod::Analytical);
+        return pair<double,double>(vega, 0.0);
     };
 };
 
