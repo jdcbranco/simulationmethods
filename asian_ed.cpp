@@ -641,7 +641,7 @@ class asian_option_geometric{
     };
 
 		//this function calculate vega at time 0 and return analytic statistics
-    vector<double> calculate_vega(string method2, double S0, double r, double v, unsigned int no_sims = 100000, double h = 0.01, bool display_results = true) {
+    vector<double> calculate_vega(string method2, double S0, double r, double v, unsigned int no_sims = 100000, double h = 0.01, bool display_results = false) {
         vector<double> res;
 
         if(icompare(method2, "fd")) {
@@ -681,7 +681,7 @@ class asian_option_geometric{
     };
 
     // this function calculate vega at time 0 and return analytic statistics
-    vector<double> calculate_gamma(string method2, double S0, double r, double v, unsigned int no_sims = 100000, double h = 0.01, bool display_results = true) {
+    vector<double> calculate_gamma(string method2, double S0, double r, double v, unsigned int no_sims = 100000, double h = 0.01, bool display_results = false) {
         vector<double> res;
 
         if(icompare(method2, "fd")) {
@@ -730,7 +730,7 @@ int main() {
 	double s0 = 100;
 	double r = 0.05;
 	double v = 0.4;
-	unsigned int no_sims = 10000000;
+	//unsigned int no_sims = 100000;
     double h = 0.01;
     int no_sims_lower = 1000;
     int no_sims_upper = 110000;
@@ -738,6 +738,7 @@ int main() {
     
     // create an asian geometric average
     asian_option_geometric opt("call",T,N,K);
+
     opt.calculate_vega("analytic",s0,r,v,false);
     opt.calculate_vega("pw",s0,r,v,no_sims,false);
     opt.calculate_vega("fd",s0,r,v,no_sims,h,false);
@@ -745,8 +746,8 @@ int main() {
 
     opt.calculate_delta("pw",s0,r,v,no_sims,h,true);
     opt.calculate_delta("lr",s0,r,v,no_sims,h,true);
+
     
-    /*
      // write files
      ofstream myfile;
      myfile.open("prices vs no_sim.csv");
@@ -806,7 +807,7 @@ int main() {
     }
     myfile.close();
     myfile1.close();
-     */
+    
 
 
 	return 0;
