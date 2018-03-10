@@ -2,6 +2,11 @@
 #ifndef SIMULATIONMETHODS_BSVANILLA_H
 #define SIMULATIONMETHODS_BSVANILLA_H
 
+#ifdef _MSC_BUILD 
+#define _USE_MATH_DEFINES
+#include "math.h"
+#endif _MSC_BUILD 
+
 #include <ctime>
 #include "Model.h"
 #include "Vanilla.h"
