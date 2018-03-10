@@ -1,0 +1,64 @@
+@startuml
+
+abstract class Model<T extends Option> {
++T: getOption()
++double: discount(double);
++pair<double,double>: calcPrice()
++pair<double,double>: calcDelta()
++pair<double,double>: calcGamma()
++pair<double,double>: calcVega()
+}
+
+Model *- Option
+
+class ModelResult
+
+class Path
+
+
+
+class Simulator {
++ vector<Path>: simulate(int sim)
++ bool:is_Antithetic()
+}
+
+class MCModel<T extends Option> {
++ModelResult:simulate(Simulator,SensitivityModel,int sim, int pathsize = 1)
++pair<double,double>: calcPrice();
++pair<double,double>: calcDelta(SensitivityModel)
++pair<double,double>: calcGamma(SensitivityModel)
++pair<double,double>: calcVega(SensitivityModel)
++void: define_control_variate(function,mean,beta)
+}
+
+MCModel o- SensitivityModel
+MCModel o- ModelResult
+
+class BSModel<T extends VanillaOption> {
++ModelResult:calculate()
+}
+
+BSModel o- ModelResult
+
+class BSAsianModel<T extends AsianOption> {
++ModelResult:calculate()
+}
+
+BSAsianModel o- ModelResult
+
+Model <|-- MCModel
+Model <|-- BSModel
+Model <|-- BSAsianModel
+
+class BSCallModel<VanillaCall>
+class BSPutModel<VanillaPut>
+class BSAsianCallModel<AsianCall>
+class BSAsianPutModel<AsianPut>
+
+BSModel <|-- BSCallModel
+BSModel <|-- BSPutModel
+BSAsianModel <|-- BSAsianCallModel
+BSAsianModel <|-- BSAsianPutModel
+
+
+@enduml
