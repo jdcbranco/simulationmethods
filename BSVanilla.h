@@ -17,7 +17,7 @@ public:
     BSModel(OPTION &option, double S0, double sigma, double r): Model<OPTION>(option,S0,sigma,r), m_K(option.getStrike()) {}
     ModelResult calculate() {
         clock_t start = clock();
-        auto price_and_variance = this->calcPrice();
+        auto price = this->calcPrice();
         auto delta = this->calcDelta();
         auto gamma = this->calcGamma();
         auto vega  = this->calcVega();
@@ -25,14 +25,15 @@ public:
         result.setModelType(ModelType::Analytical);
         result.setAntitheticVariate(false);
         result.setControlVariate(false);
-        result.setDeltaMethod(delta.second);
-        result.setGammaMethod(gamma.second);
-        result.setVegaMethod(vega.second);
-        result.setPrice(price_and_variance.first);
-        result.setPriceVariance(price_and_variance.second);
+        result.setGreeksMethod(SensitivityMethod::Analytical);
+        result.setPrice(price.first);
+        result.setPriceVariance(price.second);
         result.setDelta(delta.first);
+        result.setDeltaVariance(delta.second);
         result.setGamma(gamma.first);
+        result.setGammaVariance(gamma.second);
         result.setVega(vega.first);
+        result.setVegaVariance(vega.second);
         result.setCalcTime((std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
         return result;
     }
@@ -51,20 +52,20 @@ public:
         double d2 = d1 - m_Sigma * sqrt(m_Option.getT());
         return pair<double,double>(m_S0*normalCDF(d1) - normalCDF(d2)*m_K*exp(-m_r*T),0.0);
     };
-    pair<double,SensitivityMethod> calcDelta() const override {
+    pair<double,double> calcDelta() const override {
         double T = m_Option.getT();
         double d1 = (log(m_S0 / m_K) + (m_r + m_Sigma*m_Sigma / 2)*T) / (m_Sigma*sqrt(T));
-        return pair<double,SensitivityMethod>(normalCDF(d1),SensitivityMethod::Analytical);
+        return pair<double,double>(normalCDF(d1), 0.0);
     };
-    pair<double,SensitivityMethod> calcGamma() const override {
+    pair<double,double> calcGamma() const override {
         double T = m_Option.getT();
         double d1 = (log(m_S0 / m_K) + (m_r + m_Sigma*m_Sigma / 2)*T) / (m_Sigma*sqrt(T));
-        return pair<double,SensitivityMethod>(exp(-d1*d1 / 2) / sqrt(2 * M_PI) / (m_S0*m_Sigma*sqrt(T)), SensitivityMethod::Analytical);
+        return pair<double,double>(exp(-d1*d1 / 2) / sqrt(2 * M_PI) / (m_S0*m_Sigma*sqrt(T)), 0.0);
     };
-    pair<double,SensitivityMethod> calcVega() const override {
+    pair<double,double> calcVega() const override {
         double T = m_Option.getT();
         double d1 = (log(m_S0 / m_K) + (m_r + m_Sigma*m_Sigma / 2)*T) / (m_Sigma*sqrt(T));
-        return pair<double,SensitivityMethod>(exp(-d1*d1 / 2) / sqrt(2 * M_PI) * m_S0 *sqrt(T), SensitivityMethod::Analytical);
+        return pair<double,double>(exp(-d1*d1 / 2) / sqrt(2 * M_PI) * m_S0 *sqrt(T), 0.0);
     };
 };
 
