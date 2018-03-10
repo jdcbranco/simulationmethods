@@ -2,6 +2,14 @@
 #ifndef SIMULATIONMETHODS_VANILLA_H
 #define SIMULATIONMETHODS_VANILLA_H
 
+#ifdef _MSC_BUILD 
+#define _USE_MATH_DEFINES
+#include "math.h"
+inline double max(double a, double b) {
+	return a > b ? a : b;
+}
+#endif _MSC_BUILD 
+
 #include "Option.h"
 
 using namespace std;
