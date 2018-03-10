@@ -53,7 +53,6 @@ int main() {
     for(int i: number_simulations) {
         //continue;
         vector<ModelResult> runs;
-        //ModelResult mcModelResult = mcModel.simulate(simulator,i,mcModel.getSolver() == Explicit ? 1 : 5, SensitivityMethod::Greeks_by_LR);
         cout << "-------------" << endl;
         cout << "Simulations: " << i << endl;
         int nr = i>=100000? 10: number_runs;
@@ -87,43 +86,60 @@ int main() {
         Greeks_by_FD::CentralDifferencesSensitivityModel<ArithmeticAsianCall> asian_call_fd(asianMcModel, 0.005);
         ModelResult asianMcModelResultFD = asianMcModel.simulate(simulator, asian_call_fd, 100000, path_size);
         cout << "-------------" << endl;
-        cout << "Arithmetic Asian Call with 100k paths and " << path_size << " steps (Finite Differences): " << endl;
+        cout << "Arithmetic Asian Call with 100k paths and " << path_size << " steps (FD): " << endl;
         cout << asianMcModelResultFD;
         //Using Control variate
         asianMcModel.define_control_variate([&](const Path &path) { return asianCall.payoff(path,None); }, bsAsianModelResult.getPrice());
         ModelResult asianMcModelResultWithControlVariate = asianMcModel.simulate(simulator,asian_call_fd, 100000, path_size);
         cout << "-------------" << endl;
-        cout << "Arithmetic Asian Call with 100k paths and 10 steps and Control Variates: " << endl;
+        cout << "Arithmetic Asian Call with 100k paths and " << path_size << " steps and *Control Variates* (FD): " << endl;
         cout << asianMcModelResultWithControlVariate;
-
     }
     {
         double path_size = 1;
         cout << "-------------" << endl;
-        cout << "Using Explicit Geomtric SDE Solution: " << endl;
+        cout << "Using Explicit Geometric SDE Solution: " << endl;
         MCModel<AsianCall> asianMcModel(asianCall, s0, sigma, r, 0.005, ExplicitGeometricAverage);
         Greeks_by_FD::CentralDifferencesSensitivityModel<AsianCall> asian_call_fd(asianMcModel, 0.005);
         Greeks_by_PD::AsianCallSensitivityModel asian_call_pd(asianMcModel);
         Greeks_by_LR::AsianSensitivityModel<AsianCall> asian_call_lr(asianMcModel);
         ModelResult asianMcModelResultFD = asianMcModel.simulate(simulator, asian_call_fd, 100000, path_size);
         cout << "-------------" << endl;
-        cout << "Asian Call with 100k paths and " << path_size << " steps (Finite Differences): " << endl;
+        cout << "Geometric Asian Call with 100k paths and " << path_size << " steps (Finite Differences): " << endl;
         cout << asianMcModelResultFD;
         ModelResult asianMcModelResultPD = asianMcModel.simulate(simulator, asian_call_pd, 100000, path_size);
         cout << "-------------" << endl;
-        cout << "Asian Call with 100k paths and " << path_size << " steps (Pathwise Differentiation): " << endl;
+        cout << "Geometric Asian Call with 100k paths and " << path_size << " steps (Pathwise Differentiation): " << endl;
         cout << asianMcModelResultPD;
         ModelResult asianMcModelResultLR = asianMcModel.simulate(simulator, asian_call_lr, 100000, path_size);
         cout << "-------------" << endl;
-        cout << "Asian Call with 100k paths and " << path_size << " steps (Likelihood Ratio): " << endl;
+        cout << "Geometric Asian Call with 100k paths and " << path_size << " steps (Likelihood Ratio): " << endl;
         cout << asianMcModelResultLR;
+
+        path_size = asian_dim;
+        cout << "-------------" << endl;
+        cout << "Using Explicit Price SDE Solution: " << endl;
+        MCModel<AsianCall> asianMcModel2(asianCall, s0, sigma, r, 0.005, Explicit);
+
+        double mean_a = (r-sigma*sigma/2)*asianCall.getT()*(asian_dim+1)/(2*asian_dim);
+        double var_a = asianCall.getT()*sigma*sigma*((asian_dim+1)*(2*asian_dim+1)/(6.0*asian_dim*asian_dim));
+        double control_variate_mean = exp(-r*asianCall.getT())*(s0*exp(mean_a+var_a/2.0));
+        asianMcModel2.define_control_variate([&](const Path &path) { return path.geometric_average(None); }, control_variate_mean, 0.8);
+        ModelResult asianMcModelResultFDWithControlVariate = asianMcModel2.simulate(simulator, asian_call_fd, 100000, path_size);
+        cout << "-------------" << endl;
+        cout << "Geometric Asian Call with 100k paths and " << path_size << " steps with *Control Variates* (Finite Differences): " << endl;
+        cout << asianMcModelResultFDWithControlVariate;
+
+        path_size = 1;
+        cout << "-------------" << endl;
+        cout << "Using Explicit Geometric SDE Solution: " << endl;
+
+        asianMcModel.define_control_variate([&](const Path &path) { return path.back(None); }, control_variate_mean, 0.7);
+        ModelResult asianMcModelResultFDWithControlVariate2 = asianMcModel.simulate(simulator, asian_call_fd, 100000, path_size);
+        cout << "-------------" << endl;
+        cout << "Geometric Asian Call with 100k paths and " << path_size << " steps with *Control Variates* (Finite Differences): " << endl;
+        cout << asianMcModelResultFDWithControlVariate2;
     }
-    //using control variate
-//    asianMcModel.define_control_variate([&](const Path &path) { return vanillaCall.payoff(path,None); }, bsModelResult.getPrice());
-//    ModelResult asianMcModelResultWithControlVariate = asianMcModel.simulate(simulator,100000, 10);
-//    cout << "-------------" << endl;
-//    cout << "Asian Call with 100k paths and 10 steps and Control Variates: " << endl;
-//    cout << asianMcModelResultWithControlVariate;
 
     return 0;
 }

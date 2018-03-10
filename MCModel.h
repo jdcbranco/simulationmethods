@@ -27,7 +27,8 @@ protected:
     vector<Path> simulation_vector;
 
     function<const double (const Path&)> control_variate;
-    double control_variate_mean = 0.0;
+    double control_variate_mean = 0.0, control_variate_beta = 1.0;
+
     SensitivityMethod m_SensitivityMethod = SensitivityMethod::FiniteDifference;
     double drift(double t, Bump bump) {
         double price_bump = 1.0, sigma_bump = 1.0;
@@ -77,9 +78,10 @@ public:
         this->m_dim = option.getDim();
     }
 
-    void define_control_variate(function<const double (const Path&)> control_variate, double control_variate_mean) {
+    void define_control_variate(function<const double (const Path&)> control_variate, double control_variate_mean, double beta = 1.0) {
         this->control_variate = control_variate;
         this->control_variate_mean = control_variate_mean;
+        this->control_variate_beta = beta;
     }
 
     ModelResult simulate(Simulator simulator, SensitivityModel<OPTION> &sensitivityModel, int simulations, int path_size = 1) {
@@ -141,9 +143,8 @@ template<class OPTION> pair<double,double> MCModel<OPTION>::calcPrice() const {
 
         double size = control_variates.size();
 
-        double beta = 1.0;
         for(int i = 0 ; i< simulation_vector.size(); i++) {
-            payoffs.push_back(m_Option.payoff(simulation_vector[i], None) - beta*control_variates[i]);
+            payoffs.push_back(m_Option.payoff(simulation_vector[i], None) - control_variate_beta*control_variates[i]);
         }
         double sum = 0.0, sum_of_squares = 0.0;
         for (int i =0; i<payoffs.size(); i++) {
@@ -153,7 +154,7 @@ template<class OPTION> pair<double,double> MCModel<OPTION>::calcPrice() const {
         }
         double estimate = size > 0 ? sum / size : NAN;
         double variance = ((sum_of_squares / size) - estimate * estimate) / size;
-        return pair<double, double>(estimate+beta*control_variate_mean, variance);
+        return pair<double, double>(estimate+control_variate_beta*control_variate_mean, variance);
     }
 }
 
