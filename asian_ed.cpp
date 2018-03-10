@@ -739,13 +739,13 @@ int main() {
     // create an asian geometric average
     asian_option_geometric opt("call",T,N,K);
 
-    opt.calculate_vega("analytic",s0,r,v,false);
-    opt.calculate_vega("pw",s0,r,v,no_sims,false);
-    opt.calculate_vega("fd",s0,r,v,no_sims,h,false);
-    opt.calculate_vega("lr",s0,r,v,no_sims,false);
-
-    opt.calculate_delta("pw",s0,r,v,no_sims,h,true);
-    opt.calculate_delta("lr",s0,r,v,no_sims,h,true);
+//    opt.calculate_vega("analytic",s0,r,v,false);
+//    opt.calculate_vega("pw",s0,r,v,no_sims,false);
+//    opt.calculate_vega("fd",s0,r,v,no_sims,h,false);
+//    opt.calculate_vega("lr",s0,r,v,no_sims,false);
+//
+//    opt.calculate_delta("pw",s0,r,v,no_sims,h,true);
+//    opt.calculate_delta("lr",s0,r,v,no_sims,h,true);
 
     
      // write files

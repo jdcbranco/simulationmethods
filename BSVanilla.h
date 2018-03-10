@@ -23,6 +23,8 @@ public:
         auto vega  = this->calcVega();
         ModelResult result;
         result.setModelType(ModelType::Analytical);
+        result.setAntitheticVariate(false);
+        result.setControlVariate(false);
         result.setDeltaMethod(delta.second);
         result.setGammaMethod(gamma.second);
         result.setVegaMethod(vega.second);

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <map>
+#include <fstream>
 
 #include "Normal.h"
 #include "Vanilla.h"

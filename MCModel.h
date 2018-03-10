@@ -94,6 +94,8 @@ public:
         auto vega  = this->calcVega(sensitivityModel);
         ModelResult result;
         result.setModelType(ModelType::MonteCarlo);
+        result.setAntitheticVariate(simulator.is_Antithetic());
+        result.setControlVariate(control_variate?true:false);
         result.setSimulations(simulations);
         result.setDeltaMethod(delta.second);
         result.setGammaMethod(gamma.second);

@@ -16,12 +16,32 @@ class ModelResult {
     template<typename T> friend class BSModel;
     template<typename T> friend class BSAsianModel;
     friend ostream& operator<<(ostream& os, const ModelResult &modelResult) {
-        os << modelResult.getPrice() << " " << modelResult.getDelta() << " " << modelResult.getGamma() << " " << modelResult.getVega() << "; PriceVariance: " << modelResult.getPriceVariance() << " CalcTime: " << modelResult.getCalcTime() << " ms" << endl;
-//        os << "Price: " << (modelResult.getPrice()) << " / Variance: " << (modelResult.getPriceVariance()) << endl;
-//        os << "Delta: " << (modelResult.getDelta()) << endl;
-//        os << "Gamma: " << (modelResult.getGamma()) << endl;
-//        os << "Vega: "  << (modelResult.getVega()) << endl;
-//        os << "Calc Time: " << (modelResult.getCalcTime()) << " ms" << endl;
+        switch(modelResult.modelType) {
+            case ModelType::MonteCarlo:
+                os << "MC ";
+                break;
+            case ModelType::Analytical:
+                os << "AN ";
+                break;
+        }
+        switch(modelResult.deltaMethod) {
+            case SensitivityMethod::Analytical:
+                os << "AN ";
+                break;
+            case SensitivityMethod::FiniteDifference:
+                os << "FD ";
+                break;
+            case SensitivityMethod::PathwiseDifferentiation:
+                os << "PW ";
+                break;
+            case SensitivityMethod::LikelihoodRatio:
+                os << "LR ";
+        }
+        os << (modelResult.usesAntitheticVariates()? "ANTI:TRUE " : "ANTI:FALSE ");
+        os << (modelResult.usesControlVariate()? "CV:TRUE " : "CV:FALSE ");
+        os << modelResult.getPriceVariance() << " ";
+        os << sqrt(modelResult.getPriceVariance()) << " ";
+        os << modelResult.getPrice() << " " << modelResult.getDelta() << " " << modelResult.getGamma() << " " << modelResult.getVega() << " " << modelResult.getCalcTime() << endl;
         return os;
     };
     double price;
@@ -36,6 +56,7 @@ class ModelResult {
     SensitivityMethod vegaMethod;
     int simulations;
     bool antithetic;
+    bool control_variate;
 protected:
     void setPrice(double price) {
         this->price = price;
@@ -73,6 +94,9 @@ protected:
     void setAntitheticVariate(bool antithetic) {
         this->antithetic = antithetic;
     }
+    void setControlVariate(bool control_variate) {
+        this->control_variate = control_variate;
+    }
 public:
     ModelResult() {}
     double getPrice() const { return this->price; }
@@ -87,6 +111,7 @@ public:
     ModelType getModelType() const { return modelType; }
     int getSimulations() const { return this->simulations; }
     bool usesAntitheticVariates() const { return antithetic; }
+    bool usesControlVariate() const { return control_variate; }
 };
 
 #endif //SIMULATIONMETHODS_MODELRESULT_H
