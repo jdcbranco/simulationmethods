@@ -5,6 +5,8 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <algorithm>
+#include <numeric>
 #include <unordered_set>
 #include <unordered_map>
 #include "ModelParams.h"
