@@ -16,9 +16,7 @@ protected:
     bool m_Antithetic;
 public:
     Simulator(Normal &rng, bool antithetic = false): m_Rng(rng), m_Antithetic(antithetic) {}
-    vector<double> generate(int size) {
-        return m_Rng.generate(size);
-    }
+
     bool is_Antithetic() { return m_Antithetic; }
 
     vector<Path> simulate(ModelParams &model, int simulations, int path_size = 1) {

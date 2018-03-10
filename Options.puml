@@ -1,0 +1,42 @@
+@startuml
+
+abstract class Random {
++vector<double>: generate(int)
+}
+class Normal
+
+Random <|-- Normal
+
+enum GeneratorType {
+Custom
+Standard
+}
+
+Random *- GeneratorType
+
+class Option {
++double:payoff(Path)
++double:payoff(Path, Bump)
++double:getT()
++int:getDim()
+}
+
+class VanillaOption {
++double:getStrike()
+}
+
+Option <|-- VanillaOption
+VanillaOption <|-- VanillaCall
+VanillaOption <|-- VanillaPut
+
+class AsianOption {
++double:getStrike()
+}
+
+Option <|-- AsianOption
+AsianOption <|-- AsianCall
+AsianOption <|-- AsianPut
+AsianOption <|-- ArithmeticAsianCall
+AsianOption <|-- ArithmeticAsianPut
+
+@enduml

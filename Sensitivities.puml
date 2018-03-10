@@ -1,0 +1,47 @@
+@startuml
+
+enum SensitivityMethod {
+FiniteDifference
+PathwiseDifferentiation
+LikelihoodRatio
+Analytical
+}
+
+abstract class SensitivityModel {
+SensitivityMethod: getSensitivityMethod()
+    double: calcDelta(Path &path)
+    double: calcGamma(Path &path)
+    double: calcVega(Path &path)
+    double: deltaDivisor()
+    double: gammaDivisor()
+    double: vegaDivisor()
+}
+
+SensitivityModel *- SensitivityMethod
+
+namespace Greeks_by_FD {
+    class CentralDifferencesSensitivityModel<Option> {
+    double:getH()
+    }
+}
+
+SensitivityModel <|-- Greeks_by_FD.CentralDifferencesSensitivityModel
+
+namespace Greeks_by_PD {
+    class VanillaCallSensitivityModel<VanillaCall>
+    class AsianCallSensitivityModel<AsianCall>
+}
+
+SensitivityModel <|-- Greeks_by_PD.VanillaCallSensitivityModel
+SensitivityModel <|-- Greeks_by_PD.AsianCallSensitivityModel
+
+namespace Greeks_by_LR {
+    class VanillaSensitivityModel<VanillaOption>
+    class AsianSensitivityModel<AsianOption>
+}
+
+SensitivityModel <|-- Greeks_by_LR.VanillaSensitivityModel
+SensitivityModel <|-- Greeks_by_LR.AsianSensitivityModel
+
+
+@enduml
