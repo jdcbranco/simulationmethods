@@ -140,6 +140,22 @@ int main() {
         cout << "Geometric Asian Call with 100k paths and " << path_size << " steps with *Control Variates* (Finite Differences): " << endl;
         cout << asianMcModelResultFDWithControlVariate2;
     }
+    
+    // Normal generator  
+    int n_simulations_normal = 10000 ; // number of simulations 
+    Normal normal_simulations = Normal(Custom, 0.0,1.0);
+    vector<double> normal_simulation = normal_simulations.generate(n_simulations_normal);
+
+    ofstream fout("/output_normal.txt");
+    if (! fout.is_open()) { // test that file is open
+        cout << "Error opening output file." << endl;
+        return -1;
+    }
+
+    for (int i = 0 ; i<normal_simulation.size(); i=i+1) {
+        fout << normal_simulation[i] << " ";
+    }
+    fout.close();
 
     return 0;
 }
